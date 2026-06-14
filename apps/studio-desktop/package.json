@@ -1,0 +1,47 @@
+{
+  "name": "@consequence/studio-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run",
+    "bench": "vitest bench --run",
+    "e2e": "playwright test",
+    "tauri": "tauri",
+    "clean": "rimraf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@consequence/audio": "workspace:*",
+    "@consequence/native": "workspace:*",
+    "@consequence/state": "workspace:*",
+    "@consequence/stream": "workspace:*",
+    "@consequence/ui": "workspace:*",
+    "@tanstack/react-query": "^5.62.8",
+    "@tauri-apps/api": "^2.1.1",
+    "framer-motion": "^11.15.0",
+    "konva": "^9.3.18",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-konva": "^18.2.10",
+    "react-router-dom": "^7.1.0",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@tauri-apps/cli": "^2.1.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "ConsequenceStudio Design Token Sync",
+  "id": "consequence-studio-token-sync",
+  "api": "1.0.0",
+  "main": "plugin.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": ["figma"]
+}

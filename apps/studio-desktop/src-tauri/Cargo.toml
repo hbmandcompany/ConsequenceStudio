@@ -1,0 +1,34 @@
+[package]
+name = "consequence-studio"
+version = "0.1.0"
+description = "ConsequenceStudio native desktop shell"
+authors = ["HBM & Company"]
+edition = "2021"
+
+[lib]
+name = "consequence_studio_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+midir = "0.10"
+cpal = "0.15"
+tokio = { version = "1", features = ["sync", "rt-multi-thread"] }
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+futures-util = "0.3"
+sysinfo = "0.33"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
