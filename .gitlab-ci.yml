@@ -26,6 +26,10 @@ lint:typescript:
 lint:rust:
   stage: lint
   image: rust:1.83-bookworm
+  # Global CARGO_HOME/RUSTUP_HOME point at empty project dirs; use image toolchain.
+  variables:
+    CARGO_HOME: "/usr/local/cargo"
+    RUSTUP_HOME: "/usr/local/rustup"
   before_script:
     - apt-get update && apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
   script:
@@ -45,6 +49,9 @@ test:typescript:
 test:rust:
   stage: test
   image: rust:1.83-bookworm
+  variables:
+    CARGO_HOME: "/usr/local/cargo"
+    RUSTUP_HOME: "/usr/local/rustup"
   before_script:
     - apt-get update && apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
   script:

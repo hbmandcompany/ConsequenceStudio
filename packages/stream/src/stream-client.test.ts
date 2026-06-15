@@ -6,7 +6,6 @@ import { LedgerClient } from "./ledger-client.js";
 import {
   transportEvent,
   midiNoteEvent,
-  cmteFrame,
   doctorDiagnostic,
   doctorSuggestion,
   ledgerUpdate,
