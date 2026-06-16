@@ -1,6 +1,7 @@
 import { pixelsPerTick, pitchToY, tickToX } from "@consequence/audio";
 import { useDoctorStore, usePianoRollStore, useSessionStore, previewedSuggestions } from "@consequence/state";
 import { tokens } from "@consequence/ui/design-system";
+import { useShallow } from "zustand/shallow";
 
 const DOCTOR_VIOLET = tokens.colors.accent.doctor;
 
@@ -10,7 +11,7 @@ interface DoctorGhostOverlayProps {
 }
 
 export function DoctorGhostOverlay({ onAccept, onReject }: DoctorGhostOverlayProps) {
-  const suggestions = useDoctorStore((s) => previewedSuggestions(s));
+  const suggestions = useDoctorStore(useShallow((s) => previewedSuggestions(s)));
   const popoverId = useDoctorStore((s) => s.popoverSuggestionId);
   const setPopoverSuggestionId = useDoctorStore((s) => s.setPopoverSuggestionId);
   const scrollX = usePianoRollStore((s) => s.scrollX);

@@ -5,10 +5,12 @@ import { useAuthStore } from "@consequence/state";
 import { useSessionStore } from "@consequence/state";
 import { tokens } from "@consequence/ui/design-system";
 
-type AuthMode = "signin" | "signup";
+// "landing" shows just the wordmark + two CTA buttons.
+// "signin" / "signup" slide the form into view below the wordmark.
+type WelcomeStep = "landing" | "signin" | "signup";
 
 export function AuthPanel() {
-  const [mode, setMode] = useState<AuthMode>("signin");
+  const [step, setStep] = useState<WelcomeStep>("landing");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,7 +22,7 @@ export function AuthPanel() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    const ok = mode === "signin" ? signIn(username, password) : signUp(username, password);
+    const ok = step === "signin" ? signIn(username, password) : signUp(username, password);
     if (!ok) {
       setError("Enter a username and password.");
       return;
@@ -29,164 +31,255 @@ export function AuthPanel() {
     navigate("/workspace");
   };
 
+  const goBack = () => {
+    setStep("landing");
+    setUsername("");
+    setPassword("");
+    setError("");
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.6, ease: [0, 0, 0.2, 1] }}
-      className="relative z-10 w-full max-w-[380px] rounded-xl border p-8 backdrop-blur-md"
-      style={{
-        backgroundColor: "rgba(26, 26, 26, 0.75)",
-        borderColor: tokens.colors.border.active,
-        boxShadow: `${tokens.colors.shadow.modal}, 0 0 60px rgba(58, 74, 122, 0.15)`,
-      }}
-    >
-      <div className="mb-8 text-center">
-        <h1
-          className="mb-2 font-medium text-white"
-          style={{
-            fontFamily: tokens.typography.fontFamily.ui,
-            fontSize: tokens.typography.fontSize.display,
-            lineHeight: tokens.typography.lineHeight.display,
-          }}
-        >
-          ConsequenceStudio
-        </h1>
-        <p
-          style={{
-            fontFamily: tokens.typography.fontFamily.ui,
-            fontSize: tokens.typography.fontSize.body,
-            color: tokens.colors.text.secondary,
-          }}
-        >
-          Enter the cosmos. Create without limits.
-        </p>
-      </div>
-
-      <div
-        className="mb-6 flex rounded-md p-1"
-        style={{ backgroundColor: tokens.colors.background.canvas }}
+    <div className="relative z-10 flex flex-col items-center" style={{ width: "100%", maxWidth: 480 }}>
+      {/* ── Wordmark ────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: [0, 0, 0.2, 1] }}
+        className="text-center"
       >
-        {(["signin", "signup"] as const).map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => {
-              setMode(tab);
-              setError("");
-            }}
-            className="flex-1 rounded py-2 transition-colors"
-            style={{
-              fontFamily: tokens.typography.fontFamily.ui,
-              fontSize: tokens.typography.fontSize.compact,
-              fontWeight: tokens.typography.fontWeight.medium,
-              backgroundColor: mode === tab ? tokens.colors.background.elevated : "transparent",
-              color: mode === tab ? tokens.colors.text.accent : tokens.colors.text.secondary,
-            }}
-          >
-            {tab === "signin" ? "Sign In" : "Sign Up"}
-          </button>
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.form
-          key={mode}
-          initial={{ opacity: 0, x: mode === "signin" ? -12 : 12 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: mode === "signin" ? 12 : -12 }}
-          transition={{ duration: 0.2 }}
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4"
+        <h1
+          style={{
+            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontSize: "clamp(72px, 11vw, 128px)",
+            fontWeight: 400,
+            letterSpacing: "-0.02em",
+            lineHeight: 1,
+            color: "#FFFFFF",
+            marginBottom: 0,
+          }}
         >
-          <label className="flex flex-col gap-1.5">
-            <span
+          Consequence
+        </h1>
+      </motion.div>
+
+      {/* ── Landing CTA buttons ──────────────────────── */}
+      <AnimatePresence mode="wait">
+        {step === "landing" && (
+          <motion.div
+            key="landing"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="mt-10 flex gap-3"
+          >
+            {/* Sign In is now the primary (left) button */}
+            <button
+              type="button"
+              onClick={() => setStep("signin")}
               style={{
-                fontSize: tokens.typography.fontSize.sm,
-                color: tokens.colors.text.secondary,
-                fontFamily: tokens.typography.fontFamily.ui,
-              }}
-            >
-              Username
-            </span>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-              className="rounded-md border px-3 py-2.5 outline-none transition-colors focus:border-[#3A3A3A]"
-              style={{
-                backgroundColor: tokens.colors.background.surface,
-                borderColor: tokens.colors.border.standard,
-                color: tokens.colors.text.primary,
                 fontFamily: tokens.typography.fontFamily.ui,
                 fontSize: tokens.typography.fontSize.body,
-              }}
-              placeholder="any username"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1.5">
-            <span
-              style={{
-                fontSize: tokens.typography.fontSize.sm,
-                color: tokens.colors.text.secondary,
-                fontFamily: tokens.typography.fontFamily.ui,
+                fontWeight: tokens.typography.fontWeight.medium,
+                color: "#000000",
+                background: "#FFFFFF",
+                border: "none",
+                borderRadius: 7,
+                padding: "8px 32px",
+                cursor: "pointer",
+                letterSpacing: "-0.01em",
               }}
             >
-              Password
-            </span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              className="rounded-md border px-3 py-2.5 outline-none transition-colors focus:border-[#3A3A3A]"
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep("signup")}
               style={{
-                backgroundColor: tokens.colors.background.surface,
-                borderColor: tokens.colors.border.standard,
-                color: tokens.colors.text.primary,
                 fontFamily: tokens.typography.fontFamily.ui,
                 fontSize: tokens.typography.fontSize.body,
+                fontWeight: tokens.typography.fontWeight.medium,
+                color: "#FFFFFF",
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 7,
+                padding: "8px 32px",
+                cursor: "pointer",
+                letterSpacing: "-0.01em",
               }}
-              placeholder="any password"
-            />
-          </label>
+            >
+              Sign Up
+            </button>
+          </motion.div>
+        )}
 
-          {error && (
-            <p style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.accent.error }}>
-              {error}
-            </p>
-          )}
-
-          <motion.button
-            type="submit"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            className="mt-2 rounded-md py-3 font-medium transition-shadow"
+        {/* ── Auth form ────────────────────────────────── */}
+        {(step === "signin" || step === "signup") && (
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             style={{
-              backgroundColor: tokens.colors.text.accent,
-              color: tokens.colors.background.canvas,
-              fontFamily: tokens.typography.fontFamily.ui,
-              fontSize: tokens.typography.fontSize.body,
-              boxShadow: "0 0 24px rgba(255, 255, 255, 0.15)",
+              marginTop: 40,
+              width: "100%",
             }}
           >
-            {mode === "signin" ? "Enter Studio" : "Create Account"}
-          </motion.button>
-        </motion.form>
+            <div
+              style={{
+                background: "rgba(17,17,17,0.72)",
+                backdropFilter: "blur(20px)",
+                border: `1px solid ${tokens.colors.border.standard}`,
+                borderRadius: 14,
+                padding: "32px 32px 28px",
+              }}
+            >
+              <div className="mb-6 flex items-center justify-between">
+                <span
+                  style={{
+                    fontFamily: tokens.typography.fontFamily.ui,
+                    fontSize: tokens.typography.fontSize.heading,
+                    fontWeight: tokens.typography.fontWeight.medium,
+                    color: tokens.colors.text.primary,
+                  }}
+                >
+                  {step === "signin" ? "Sign in" : "Create account"}
+                </span>
+                <button
+                  type="button"
+                  onClick={goBack}
+                  style={{
+                    fontFamily: tokens.typography.fontFamily.ui,
+                    fontSize: tokens.typography.fontSize.compact,
+                    color: tokens.colors.text.muted,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "4px 8px",
+                    borderRadius: 4,
+                  }}
+                >
+                  ← Back
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  autoFocus
+                  placeholder="Username"
+                  style={{
+                    width: "100%",
+                    backgroundColor: tokens.colors.background.canvas,
+                    border: `1px solid ${tokens.colors.border.standard}`,
+                    borderRadius: 8,
+                    padding: "11px 14px",
+                    color: tokens.colors.text.primary,
+                    fontFamily: tokens.typography.fontFamily.ui,
+                    fontSize: tokens.typography.fontSize.body,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={step === "signin" ? "current-password" : "new-password"}
+                  placeholder="Password"
+                  style={{
+                    width: "100%",
+                    backgroundColor: tokens.colors.background.canvas,
+                    border: `1px solid ${tokens.colors.border.standard}`,
+                    borderRadius: 8,
+                    padding: "11px 14px",
+                    color: tokens.colors.text.primary,
+                    fontFamily: tokens.typography.fontFamily.ui,
+                    fontSize: tokens.typography.fontSize.body,
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                {error && (
+                  <p
+                    style={{
+                      fontSize: tokens.typography.fontSize.sm,
+                      color: "#cc4444",
+                      fontFamily: tokens.typography.fontFamily.ui,
+                      margin: 0,
+                    }}
+                  >
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  style={{
+                    marginTop: 4,
+                    width: "100%",
+                    backgroundColor: tokens.colors.text.accent,
+                    color: tokens.colors.background.canvas,
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "12px",
+                    fontFamily: tokens.typography.fontFamily.ui,
+                    fontSize: tokens.typography.fontSize.body,
+                    fontWeight: tokens.typography.fontWeight.medium,
+                    cursor: "pointer",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {step === "signin" ? "Continue" : "Create account"}
+                </button>
+              </form>
+
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(step === "signin" ? "signup" : "signin");
+                    setError("");
+                  }}
+                  style={{
+                    fontFamily: tokens.typography.fontFamily.ui,
+                    fontSize: tokens.typography.fontSize.sm,
+                    color: tokens.colors.text.muted,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {step === "signin"
+                    ? "Don't have an account? Sign up"
+                    : "Already have an account? Sign in"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
-      <p
-        className="mt-6 text-center"
+      {/* ── Footer ──────────────────────────────────── */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.6 }}
         style={{
+          marginTop: step === "landing" ? 48 : 24,
           fontSize: tokens.typography.fontSize.xs,
           color: tokens.colors.text.muted,
           fontFamily: tokens.typography.fontFamily.ui,
+          letterSpacing: "0.01em",
         }}
       >
-        HBM &amp; Company · consequence.software
-      </p>
-    </motion.div>
+        HBM &amp; Company
+      </motion.p>
+    </div>
   );
 }

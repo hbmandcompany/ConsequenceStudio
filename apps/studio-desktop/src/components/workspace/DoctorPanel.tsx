@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useShallow } from "zustand/shallow";
 import type { DoctorDiagnosticPayload } from "@consequence/stream";
 import {
   DIAGNOSTIC_CATEGORIES,
@@ -62,7 +63,7 @@ function ModeSelector() {
 }
 
 function DiagnoseMode() {
-  const diagnostics = useDoctorStore((s) => visibleDiagnostics(s));
+  const diagnostics = useDoctorStore(useShallow((s) => visibleDiagnostics(s)));
   const dismissed = useDoctorStore((s) => s.dismissedDiagnosticIds);
   const dismissDiagnostic = useDoctorStore((s) => s.dismissDiagnostic);
   const jumpToDiagnostic = useDoctorStore((s) => s.jumpToDiagnostic);
@@ -83,7 +84,7 @@ function DiagnoseMode() {
   if (diagnostics.length === 0) {
     return (
       <div className="p-4 text-center" style={{ color: tokens.colors.text.muted }}>
-        No diagnostics. ConsequenceDoctor will surface issues as CMTE frames are analyzed.
+        No diagnostics.
       </div>
     );
   }
@@ -190,14 +191,14 @@ function DiagnosticRow({
 }
 
 function SuggestMode() {
-  const suggestions = useDoctorStore((s) => visibleSuggestions(s));
+  const suggestions = useDoctorStore(useShallow((s) => visibleSuggestions(s)));
   const previewed = useDoctorStore((s) => s.previewedSuggestionIds);
   const togglePreview = useDoctorStore((s) => s.toggleSuggestionPreview);
 
   if (suggestions.length === 0) {
     return (
       <div className="p-4 text-center" style={{ color: tokens.colors.text.muted }}>
-        No suggestions yet. ConsequenceDoctor will propose non-destructive fixes here.
+        No suggestions.
       </div>
     );
   }

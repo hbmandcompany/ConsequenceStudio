@@ -28,28 +28,20 @@ export interface PianoRollActions {
   deleteNote: (id: string) => void;
   moveNote: (id: string, tick: number, pitch: number) => void;
   resizeNote: (id: string, duration: number) => void;
+  quantizeNotes: (ids?: string[]) => void;
   syncFromReconstruction: (notes: PianoRollNote[]) => void;
 }
 
-const seedNotes: PianoRollNote[] = [
-  { id: "n1", pitch: 60, velocity: 100, tick: 0, duration: TICKS_PER_BEAT * 2, trackId: "track-1" },
-  { id: "n2", pitch: 64, velocity: 96, tick: 0, duration: TICKS_PER_BEAT * 2, trackId: "track-1" },
-  { id: "n3", pitch: 67, velocity: 92, tick: 0, duration: TICKS_PER_BEAT * 2, trackId: "track-1" },
-  { id: "n4", pitch: 62, velocity: 88, tick: TICKS_PER_BEAT * 2, duration: TICKS_PER_BEAT * 2, trackId: "track-1" },
-  { id: "n5", pitch: 36, velocity: 110, tick: 0, duration: TICKS_PER_BEAT, trackId: "track-2" },
-  { id: "n6", pitch: 36, velocity: 105, tick: TICKS_PER_BEAT * 2, duration: TICKS_PER_BEAT, trackId: "track-2" },
-  { id: "n7", pitch: 42, velocity: 120, tick: TICKS_PER_BEAT * 4, duration: 120, trackId: "track-3" },
-];
 
 export const usePianoRollStore = create<PianoRollState & PianoRollActions>((set) => ({
-  notes: seedNotes,
+  notes: [],
   selectedNoteIds: [],
   activeTool: "pointer",
   scrollX: 0,
   scrollY: (127 - 72) * 12,
   pixelsPerBar: 120,
   rowHeight: 12,
-  activeTrackId: "track-1",
+  activeTrackId: "",
   selectNotes: (ids) => set({ selectedNoteIds: ids }),
   setActiveTool: (activeTool) => set({ activeTool }),
   setScroll: (scrollX, scrollY) => set({ scrollX: Math.max(0, scrollX), scrollY: Math.max(0, scrollY) }),
@@ -58,7 +50,10 @@ export const usePianoRollStore = create<PianoRollState & PianoRollActions>((set)
   setActiveTrackId: (activeTrackId) => set({ activeTrackId }),
   addNote: (note) =>
     set((state) => ({
-      notes: [...state.notes, { ...note, id: `note-${Date.now()}` }],
+      notes: [
+        ...state.notes,
+        { ...note, id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 9)}` },
+      ],
       selectedNoteIds: [],
     })),
   updateNote: (id, patch) =>
@@ -71,13 +66,14 @@ export const usePianoRollStore = create<PianoRollState & PianoRollActions>((set)
       selectedNoteIds: state.selectedNoteIds.filter((nid) => nid !== id),
     })),
   moveNote: (id, tick, pitch) => {
-    const quantization = useWorkspaceStore.getState().quantization;
+    const { quantization, snapEnabled } = useWorkspaceStore.getState();
+    const nextTick = snapEnabled ? snapTick(tick, quantization) : Math.max(0, Math.round(tick));
     set((state) => ({
       notes: state.notes.map((n) =>
         n.id === id
           ? {
               ...n,
-              tick: snapTick(tick, quantization),
+              tick: nextTick,
               pitch: Math.max(0, Math.min(127, pitch)),
             }
           : n,
@@ -90,5 +86,18 @@ export const usePianoRollStore = create<PianoRollState & PianoRollActions>((set)
         n.id === id ? { ...n, duration: Math.max(TICKS_PER_BEAT / 8, duration) } : n,
       ),
     })),
+  quantizeNotes: (ids) => {
+    const quantization = useWorkspaceStore.getState().quantization;
+    set((state) => {
+      const target = ids && ids.length > 0 ? new Set(ids) : null;
+      return {
+        notes: state.notes.map((n) =>
+          !target || target.has(n.id)
+            ? { ...n, tick: snapTick(n.tick, quantization) }
+            : n,
+        ),
+      };
+    });
+  },
   syncFromReconstruction: (notes) => set({ notes }),
 }));

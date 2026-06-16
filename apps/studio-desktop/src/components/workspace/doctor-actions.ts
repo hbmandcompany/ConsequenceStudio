@@ -32,12 +32,5 @@ export function rejectDoctorSuggestion(suggestionId: string): void {
 }
 
 export function sendDoctorInstruction(instruction: string): void {
-  const stream = getWorkspaceStream();
-  stream?.doctor.sendInstruction(instruction);
-  useDoctorStore.getState().appendExecuteExchange({
-    id: `exec-${Date.now()}`,
-    instruction,
-    response: "Instruction sent to ConsequenceDoctor. Awaiting response…",
-    timestamp: Date.now(),
-  });
+  getWorkspaceStream()?.doctor.sendInstruction(instruction);
 }

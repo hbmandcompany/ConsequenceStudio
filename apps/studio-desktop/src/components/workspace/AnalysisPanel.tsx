@@ -1,4 +1,5 @@
 import { useTheoryStore } from "@consequence/state";
+import { loadStreamConfig } from "@consequence/stream";
 import { tokens } from "@consequence/ui/design-system";
 import {
   AnimatedBar,
@@ -19,6 +20,7 @@ export function AnalysisPanel() {
   const lastTick = useTheoryStore((s) => s.lastTick);
 
   if (!panel) {
+    const theoryUrl = loadStreamConfig().theoryEngineHttpUrl;
     return (
       <div
         className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center"
@@ -26,10 +28,7 @@ export function AnalysisPanel() {
       >
         <span>CMTE Analysis</span>
         <span>Status: {status}</span>
-        <span className="max-w-xs">
-          Connect the theory engine on 127.0.0.1:8741 to stream harmonic, melodic, rhythmic, tonal,
-          and structural analysis in real time.
-        </span>
+        {theoryUrl ? <span className="max-w-xs font-mono text-xs">{theoryUrl}</span> : null}
       </div>
     );
   }

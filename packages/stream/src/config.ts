@@ -17,6 +17,8 @@ export interface StreamConfig {
   studioEnableStream: boolean;
   studioEnableLedger: boolean;
   studioLedgerHttpUrl: string;
+  conductorHttpUrl: string;
+  conductorAuthToken: string;
 }
 
 function envFlag(value: string | undefined, fallback = false): boolean {
@@ -24,15 +26,33 @@ function envFlag(value: string | undefined, fallback = false): boolean {
   return value === "true" || value === "1";
 }
 
+/** Resolve HTTP(S) or relative proxy paths to a WebSocket base URL. */
+export function resolveServiceWsUrl(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("ws://") || trimmed.startsWith("wss://")) return trimmed.replace(/\/$/, "");
+  if (trimmed.startsWith("http://")) return trimmed.replace(/^http/, "ws").replace(/\/$/, "");
+  if (trimmed.startsWith("https://")) return trimmed.replace(/^https/, "wss").replace(/\/$/, "");
+  if (trimmed.startsWith("/")) {
+    if (typeof globalThis !== "undefined" && "location" in globalThis) {
+      const loc = (globalThis as Window & typeof globalThis).location;
+      const proto = loc.protocol === "https:" ? "wss:" : "ws:";
+      return `${proto}//${loc.host}${trimmed}`.replace(/\/$/, "");
+    }
+    return null;
+  }
+  return trimmed.replace(/\/$/, "");
+}
+
 export function loadStreamConfig(): StreamConfig {
-  const poetWsUrl =
-    import.meta.env.VITE_STUDIO_POET_WS_URL ??
-    import.meta.env.VITE_POET_WS_URL ??
-    "ws://localhost:8000";
+  const conductorHttpUrl = import.meta.env.VITE_STUDIO_CONDUCTOR_HTTP_URL ?? "";
+  const explicitPoetWs =
+    import.meta.env.VITE_STUDIO_POET_WS_URL ?? import.meta.env.VITE_POET_WS_URL ?? "";
+  const poetWsUrl = explicitPoetWs || conductorHttpUrl;
   const poetHttpUrl =
     import.meta.env.VITE_STUDIO_POET_HTTP_URL ??
     import.meta.env.VITE_POET_HTTP_URL ??
-    "http://localhost:8000";
+    conductorHttpUrl;
   const streamUrl =
     import.meta.env.VITE_STUDIO_STREAM_URL ??
     import.meta.env.VITE_CONSEQUENCE_STREAM_WS_URL ??
@@ -50,10 +70,8 @@ export function loadStreamConfig(): StreamConfig {
     floppydiskHttpUrl:
       import.meta.env.VITE_FLOPPYDISK_HTTP_URL ?? "http://localhost:8084",
     floppydiskWsUrl: import.meta.env.VITE_FLOPPYDISK_WS_URL ?? "ws://localhost:8084/ws",
-    theoryEngineHttpUrl:
-      import.meta.env.VITE_THEORY_ENGINE_HTTP_URL ?? "http://127.0.0.1:8741",
-    theoryEngineAuthToken:
-      import.meta.env.VITE_THEORY_ENGINE_AUTH_TOKEN ?? "dev-secret-change-in-production",
+    theoryEngineHttpUrl: import.meta.env.VITE_THEORY_ENGINE_HTTP_URL ?? "",
+    theoryEngineAuthToken: import.meta.env.VITE_THEORY_ENGINE_AUTH_TOKEN ?? "",
     poetWsUrl,
     poetHttpUrl,
     poetApiKey:
@@ -64,5 +82,10 @@ export function loadStreamConfig(): StreamConfig {
     studioEnableStream: envFlag(import.meta.env.VITE_STUDIO_ENABLE_STREAM),
     studioEnableLedger: envFlag(import.meta.env.VITE_STUDIO_ENABLE_LEDGER),
     studioLedgerHttpUrl: ledgerHttpUrl,
+    conductorHttpUrl,
+    conductorAuthToken:
+      import.meta.env.VITE_STUDIO_CONDUCTOR_AUTH_TOKEN ??
+      import.meta.env.VITE_CONDUCTOR_AUTH_TOKEN ??
+      "",
   };
 }

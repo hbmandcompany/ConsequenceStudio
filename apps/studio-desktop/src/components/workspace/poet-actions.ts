@@ -74,15 +74,15 @@ export const poetPanelActions = {
 
 export function openPoetConstraints(): void {
   usePoetStore.getState().setConstraintsSectionOpen(true);
-  useWorkspaceStore.getState().setActiveRightTab("poet");
+  useWorkspaceStore.getState().focusAssistant("poet");
 }
 
 export function togglePoetPanelTab(): void {
-  const { activeRightTab, previousRightTab, setActiveRightTab, setPreviousRightTab } = useWorkspaceStore.getState();
-  if (activeRightTab === "poet") {
-    setActiveRightTab(previousRightTab ?? "doctor");
+  const { rightPanelOpen, rightPanelView, setRightPanelOpen, focusAssistant } =
+    useWorkspaceStore.getState();
+  if (rightPanelOpen && rightPanelView === "assistant") {
+    setRightPanelOpen(false);
   } else {
-    setPreviousRightTab(activeRightTab);
-    setActiveRightTab("poet");
+    focusAssistant("poet");
   }
 }

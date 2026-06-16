@@ -1,3 +1,4 @@
+export * from "./agent-client.js";
 export * from "./config.js";
 export * from "./stream-client.js";
 export * from "./cmte-client.js";

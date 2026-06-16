@@ -1,5 +1,7 @@
 # Dependencies
-node_modules/
+node_modules
+deploy/lambda/consequence_lambda/
+deploy/lambda/consequence_lambda
 .pnpm-store/
 
 # Build outputs

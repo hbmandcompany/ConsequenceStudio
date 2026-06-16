@@ -1,10 +1,13 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Layer, Line, Rect, Stage, Text } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
+import type { Stage as KonvaStage } from "konva/lib/Stage";
 import {
   useArrangementStore,
   useSessionStore,
   useTrackStore,
+  useWorkspaceStore,
+  maxArrangementTicks,
   tickToBar,
   tickToX,
   ticksPerBar,
@@ -15,6 +18,7 @@ import { ArrangementClipNode } from "./ArrangementClipNode";
 
 const RULER_HEIGHT = 24;
 const TRACK_ROW_HEIGHT = tokens.spacing.trackRowHeight;
+const LOOP_COLOR = tokens.colors.accent.tension;
 
 interface ArrangementViewProps {
   width: number;
@@ -24,12 +28,20 @@ interface ArrangementViewProps {
 export function ArrangementView({ width, height }: ArrangementViewProps) {
   const tracks = useTrackStore((s) => s.tracks);
   const timeSignature = useSessionStore((s) => s.timeSignature);
+  const tempo = useSessionStore((s) => s.tempo);
   const positionTicks = useSessionStore((s) => s.positionTicks);
   const setPositionTicks = useSessionStore((s) => s.setPositionTicks);
+  const markers = useSessionStore((s) => s.markers);
+  const loopStartTick = useSessionStore((s) => s.loopStartTick);
+  const loopEndTick = useSessionStore((s) => s.loopEndTick);
+  const setLoopRegion = useSessionStore((s) => s.setLoopRegion);
+  const clearLoopRegion = useSessionStore((s) => s.clearLoopRegion);
+  const loopEnabled = useWorkspaceStore((s) => s.loopEnabled);
+  const setLoopEnabled = useWorkspaceStore((s) => s.setLoopEnabled);
 
   const clips = useArrangementStore((s) => s.clips);
   const selectedClipIds = useArrangementStore((s) => s.selectedClipIds);
-  const scrollX = useArrangementStore((s) => s.scrollX);
+  const scrollXRaw = useArrangementStore((s) => s.scrollX);
   const pixelsPerBar = useArrangementStore((s) => s.pixelsPerBar);
   const setScrollX = useArrangementStore((s) => s.setScrollX);
   const setPixelsPerBar = useArrangementStore((s) => s.setPixelsPerBar);
@@ -39,6 +51,7 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
   const resizeClip = useArrangementStore((s) => s.resizeClip);
   const duplicateClip = useArrangementStore((s) => s.duplicateClip);
 
+  const stageRef = useRef<KonvaStage>(null);
   const [rubberBand, setRubberBand] = useState<{
     x: number;
     y: number;
@@ -46,17 +59,34 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
     h: number;
   } | null>(null);
   const rubberOrigin = useRef<{ x: number; y: number } | null>(null);
+  const loopDrag = useRef<{ startTick: number; moved: boolean } | null>(null);
+  const [loopPreview, setLoopPreview] = useState<{ start: number; end: number } | null>(null);
+
+  const tpb = ticksPerBar(timeSignature);
+  const maxTick = maxArrangementTicks(tempo);
+  const maxBar = maxTick / tpb;
+  const contentWidth = maxBar * pixelsPerBar;
+  const maxScroll = Math.max(0, contentWidth - width);
+  const scrollX = Math.max(0, Math.min(scrollXRaw, maxScroll));
+  const endX = contentWidth - scrollX;
 
   const canvasHeight = Math.max(height - RULER_HEIGHT, tracks.length * TRACK_ROW_HEIGHT);
-  const tpb = ticksPerBar(timeSignature);
-  const visibleBars = Math.ceil((width + scrollX) / pixelsPerBar) + 2;
+  const visibleBars = Math.min(
+    Math.ceil((width + scrollX) / pixelsPerBar) + 2,
+    Math.ceil(maxBar) + 1,
+  );
+
+  const clampTick = useCallback(
+    (tick: number) => Math.max(0, Math.min(tick, maxTick)),
+    [maxTick],
+  );
 
   const rulerMarks = useMemo(() => {
     const marks: Array<{ x: number; label: string; major: boolean }> = [];
     const startBar = Math.floor(scrollX / pixelsPerBar);
-    for (let bar = startBar; bar < startBar + visibleBars; bar += 1) {
-      const x = bar * pixelsPerBar - scrollX;
-      marks.push({ x, label: String(bar + 1), major: true });
+    for (let b = startBar; b < startBar + visibleBars && b <= maxBar; b += 1) {
+      const x = b * pixelsPerBar - scrollX;
+      marks.push({ x, label: String(b + 1), major: true });
       for (let beat = 1; beat < timeSignature[0]; beat += 1) {
         marks.push({
           x: x + (beat / timeSignature[0]) * pixelsPerBar,
@@ -66,9 +96,17 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
       }
     }
     return marks;
-  }, [scrollX, pixelsPerBar, visibleBars, timeSignature]);
+  }, [scrollX, pixelsPerBar, visibleBars, timeSignature, maxBar]);
 
   const playheadX = tickToX(positionTicks, pixelsPerBar, timeSignature, scrollX);
+
+  const loopRegion = loopPreview ?? (loopStartTick != null && loopEndTick != null ? { start: loopStartTick, end: loopEndTick } : null);
+  const loopXStart = loopRegion
+    ? tickToX(Math.min(loopRegion.start, loopRegion.end), pixelsPerBar, timeSignature, scrollX)
+    : 0;
+  const loopXEnd = loopRegion
+    ? tickToX(Math.max(loopRegion.start, loopRegion.end), pixelsPerBar, timeSignature, scrollX)
+    : 0;
 
   const onWheel = useCallback(
     (e: KonvaEventObject<WheelEvent>) => {
@@ -79,13 +117,48 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
         return;
       }
       const delta = e.evt.shiftKey ? e.evt.deltaY : e.evt.deltaX || e.evt.deltaY;
-      setScrollX(scrollX + delta);
+      setScrollX(Math.max(0, Math.min(scrollX + delta, maxScroll)));
     },
-    [pixelsPerBar, scrollX, setPixelsPerBar, setScrollX, width],
+    [pixelsPerBar, scrollX, setPixelsPerBar, setScrollX, width, maxScroll],
   );
 
   const seekFromRuler = (x: number) => {
-    setPositionTicks(xToTick(x, pixelsPerBar, timeSignature, scrollX));
+    setPositionTicks(clampTick(xToTick(x, pixelsPerBar, timeSignature, scrollX)));
+  };
+
+  const onRulerMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+    const x = e.evt.offsetX;
+    loopDrag.current = {
+      startTick: clampTick(xToTick(x, pixelsPerBar, timeSignature, scrollX)),
+      moved: false,
+    };
+  };
+
+  const onStageMouseMove = (e: KonvaEventObject<MouseEvent>) => {
+    const drag = loopDrag.current;
+    if (!drag) return;
+    const tick = clampTick(xToTick(e.evt.offsetX, pixelsPerBar, timeSignature, scrollX));
+    if (Math.abs(tick - drag.startTick) > tpb / 16) drag.moved = true;
+    setLoopPreview({ start: drag.startTick, end: tick });
+  };
+
+  const onStageMouseUp = (e: KonvaEventObject<MouseEvent>) => {
+    const drag = loopDrag.current;
+    loopDrag.current = null;
+    if (!drag) return;
+    setLoopPreview(null);
+    if (!drag.moved) {
+      seekFromRuler(e.evt.offsetX);
+      return;
+    }
+    const endTick = clampTick(xToTick(e.evt.offsetX, pixelsPerBar, timeSignature, scrollX));
+    if (Math.abs(endTick - drag.startTick) < tpb / 8) {
+      clearLoopRegion();
+      setLoopEnabled(false);
+      return;
+    }
+    setLoopRegion(drag.startTick, endTick);
+    setLoopEnabled(true);
   };
 
   const trackIndexById = useMemo(
@@ -115,9 +188,12 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
 
   return (
     <Stage
+      ref={stageRef}
       width={width}
       height={height}
       onWheel={onWheel}
+      onMouseMove={onStageMouseMove}
+      onMouseUp={onStageMouseUp}
       style={{ backgroundColor: tokens.colors.background.canvas }}
     >
       <Layer>
@@ -127,8 +203,21 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
           width={width}
           height={RULER_HEIGHT}
           fill={tokens.colors.background.surface}
-          onClick={(e) => seekFromRuler(e.evt.offsetX)}
+          onMouseDown={onRulerMouseDown}
         />
+        {/* loop / cycle region in the ruler */}
+        {loopRegion && (
+          <Rect
+            x={loopXStart}
+            y={0}
+            width={Math.max(2, loopXEnd - loopXStart)}
+            height={RULER_HEIGHT}
+            fill={LOOP_COLOR}
+            opacity={loopEnabled ? 0.5 : 0.28}
+            cornerRadius={2}
+            listening={false}
+          />
+        )}
         {rulerMarks.map((mark, i) => (
           <Line
             key={`mark-${i}`}
@@ -152,6 +241,23 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
               listening={false}
             />
           ))}
+        {/* arrangement markers */}
+        {markers.map((marker) => {
+          const mx = tickToX(marker.tick, pixelsPerBar, timeSignature, scrollX);
+          if (mx < -40 || mx > width + 40) return null;
+          return (
+            <Text
+              key={marker.id}
+              x={mx + 3}
+              y={RULER_HEIGHT - 12}
+              text={`▸ ${marker.label}`}
+              fontSize={9}
+              fontFamily={tokens.typography.fontFamily.ui}
+              fill={tokens.colors.accent.cmte}
+              listening={false}
+            />
+          );
+        })}
         <Line
           points={[playheadX, 0, playheadX, RULER_HEIGHT]}
           stroke="rgba(255,255,255,0.9)"
@@ -200,6 +306,19 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
           }}
         />
 
+        {/* loop region across the lanes */}
+        {loopRegion && (
+          <Rect
+            x={loopXStart}
+            y={0}
+            width={Math.max(2, loopXEnd - loopXStart)}
+            height={canvasHeight}
+            fill={LOOP_COLOR}
+            opacity={loopEnabled ? 0.1 : 0.06}
+            listening={false}
+          />
+        )}
+
         {tracks.map((track, index) => {
           const laneY = index * TRACK_ROW_HEIGHT;
           return (
@@ -217,11 +336,12 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
         })}
 
         {Array.from({ length: visibleBars }).map((_, i) => {
-          const bar = Math.floor(scrollX / pixelsPerBar) + i;
-          const x = bar * pixelsPerBar - scrollX;
+          const b = Math.floor(scrollX / pixelsPerBar) + i;
+          if (b > maxBar) return null;
+          const x = b * pixelsPerBar - scrollX;
           return (
             <Line
-              key={`grid-${bar}`}
+              key={`grid-${b}`}
               points={[x, 0, x, canvasHeight]}
               stroke={tokens.colors.border.hairline}
               strokeWidth={1}
@@ -266,6 +386,28 @@ export function ArrangementView({ width, height }: ArrangementViewProps) {
             dash={[4, 4]}
             listening={false}
           />
+        )}
+
+        {/* 5-minute end-of-arrangement boundary */}
+        {endX <= width + 1 && (
+          <>
+            <Rect
+              x={endX}
+              y={0}
+              width={Math.max(0, width - endX)}
+              height={canvasHeight}
+              fill={tokens.colors.background.canvas}
+              opacity={0.6}
+              listening={false}
+            />
+            <Line
+              points={[endX, 0, endX, canvasHeight]}
+              stroke={tokens.colors.accent.error}
+              strokeWidth={1}
+              dash={[3, 3]}
+              listening={false}
+            />
+          </>
         )}
 
         <Line

@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { useArrangementStore } from "./arrangement-store.js";
+import { usePianoRollStore } from "./piano-roll-store.js";
 
 export type TrackType = "midi" | "audio" | "instrument";
 
@@ -7,6 +9,7 @@ export interface Track {
   name: string;
   color: string;
   type: TrackType;
+  instrument: string;
   muted: boolean;
   solo: boolean;
   armed: boolean;
@@ -47,60 +50,19 @@ export interface TrackActions {
   toggleLock: (id: string) => void;
   reorderTrack: (fromIndex: number, toIndex: number) => void;
   addTrack: (type?: TrackType) => void;
+  removeTrack: (id: string) => void;
   updateTrack: (id: string, patch: Partial<Track>) => void;
 }
 
-const defaultTracks: Track[] = [
-  {
-    id: "track-1",
-    name: "Piano",
-    color: TRACK_COLORS[0],
-    type: "instrument",
-    muted: false,
-    solo: false,
-    armed: false,
-    locked: false,
-    volume: 0.8,
-    pan: 0,
-    midiChannel: 1,
-    peakLevel: 0.3,
-    rmsLevel: 0.15,
-  },
-  {
-    id: "track-2",
-    name: "Bass",
-    color: TRACK_COLORS[2],
-    type: "midi",
-    muted: false,
-    solo: false,
-    armed: false,
-    locked: false,
-    volume: 0.75,
-    pan: 0,
-    midiChannel: 2,
-    peakLevel: 0.5,
-    rmsLevel: 0.22,
-  },
-  {
-    id: "track-3",
-    name: "Drums",
-    color: TRACK_COLORS[6],
-    type: "audio",
-    muted: false,
-    solo: false,
-    armed: false,
-    locked: false,
-    volume: 0.9,
-    pan: 0,
-    midiChannel: 10,
-    peakLevel: 0.7,
-    rmsLevel: 0.4,
-  },
-];
+export const DEFAULT_INSTRUMENT: Record<TrackType, string> = {
+  midi: "External MIDI",
+  audio: "Audio Input",
+  instrument: "Consequence Instrument",
+};
 
-export const useTrackStore = create<TrackState & TrackActions>((set) => ({
-  tracks: defaultTracks,
-  selectedTrackIds: ["track-1"],
+export const useTrackStore = create<TrackState & TrackActions>((set, get) => ({
+  tracks: [],
+  selectedTrackIds: [],
   selectTrack: (id, additive = false) =>
     set((state) => ({
       selectedTrackIds: additive
@@ -140,6 +102,7 @@ export const useTrackStore = create<TrackState & TrackActions>((set) => ({
         name: `Track ${index + 1}`,
         color: TRACK_COLORS[index % TRACK_COLORS.length],
         type,
+        instrument: DEFAULT_INSTRUMENT[type],
         muted: false,
         solo: false,
         armed: false,
@@ -152,6 +115,30 @@ export const useTrackStore = create<TrackState & TrackActions>((set) => ({
       };
       return { tracks: [...state.tracks, track], selectedTrackIds: [track.id] };
     }),
+  removeTrack: (id) => {
+    set((state) => {
+      const tracks = state.tracks.filter((t) => t.id !== id);
+      const selectedTrackIds = state.selectedTrackIds.filter((tid) => tid !== id);
+      const nextSelection =
+        selectedTrackIds.length > 0
+          ? selectedTrackIds
+          : tracks[0]
+            ? [tracks[0].id]
+            : [];
+      return { tracks, selectedTrackIds: nextSelection };
+    });
+    const arrangement = useArrangementStore.getState();
+    arrangement.selectClips([]);
+    useArrangementStore.setState({
+      clips: arrangement.clips.filter((c) => c.trackId !== id),
+    });
+    const piano = usePianoRollStore.getState();
+    const notes = piano.notes.filter((n) => n.trackId !== id);
+    piano.syncFromReconstruction(notes);
+    if (piano.activeTrackId === id) {
+      piano.setActiveTrackId(get().tracks[0]?.id ?? "");
+    }
+  },
   updateTrack: (id, patch) =>
     set((state) => ({
       tracks: state.tracks.map((t) => (t.id === id ? { ...t, ...patch } : t)),

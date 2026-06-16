@@ -44,6 +44,8 @@ export function snapTick(tick: number, quantization: string): number {
     "1/4": TICKS_PER_BEAT,
     "1/8": TICKS_PER_BEAT / 2,
     "1/16": TICKS_PER_BEAT / 4,
+    "1/16T": TICKS_PER_BEAT / 6,
+    "1/32": TICKS_PER_BEAT / 8,
   };
   const grid = map[quantization] ?? TICKS_PER_BEAT / 4;
   return Math.round(tick / grid) * grid;

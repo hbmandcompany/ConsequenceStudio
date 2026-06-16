@@ -1,0 +1,5 @@
+{
+  "name": "default-nyc2",
+  "region": "nyc2",
+  "ip_range": "10.117.0.0/20"
+}

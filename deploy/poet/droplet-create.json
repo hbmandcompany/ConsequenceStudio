@@ -1,0 +1,8 @@
+{
+  "name": "consequence-poet-70b",
+  "region": "nyc3",
+  "size": "gpu-h100x1-80gb",
+  "image": "ubuntu-22-04-x64",
+  "tags": ["consequence", "poet", "llama70b"],
+  "monitoring": true
+}

@@ -5,6 +5,7 @@ import {
   useArrangementStore,
   usePianoRollStore,
   useFloppydiskStore,
+  useTrackStore,
 } from "@consequence/state";
 import { getWorkspaceStream } from "../../stream/workspace-stream.js";
 
@@ -40,7 +41,11 @@ export function injectFloppydiskAssetAt(
   position: { tick: number; pitch?: number; trackId?: string },
 ): void {
   if (target === "arrangement") {
-    const trackId = position.trackId ?? "track-1";
+    const trackId =
+      position.trackId ??
+      useTrackStore.getState().selectedTrackIds[0] ??
+      useTrackStore.getState().tracks[0]?.id;
+    if (!trackId) return;
     const notes = asset.preview_notes ?? [{ pitch: 60, tick: 0, duration: TICKS_PER_BEAT * 2 }];
     const durationTicks = Math.max(
       TICKS_PER_BEAT * 2,
@@ -61,7 +66,10 @@ export function injectFloppydiskAssetAt(
     return;
   }
 
-  const trackId = position.trackId ?? usePianoRollStore.getState().activeTrackId;
+  const trackId =
+    position.trackId ??
+    (usePianoRollStore.getState().activeTrackId || useTrackStore.getState().tracks[0]?.id);
+  if (!trackId) return;
   const basePitch = position.pitch ?? 60;
   const notes = asset.preview_notes ?? [{ pitch: basePitch, tick: 0, duration: TICKS_PER_BEAT }];
   const addNote = usePianoRollStore.getState().addNote;

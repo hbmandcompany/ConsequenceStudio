@@ -29,6 +29,8 @@ export class TheoryEngineClient {
   private frameHandlers = new Set<FrameHandler>();
   private statusHandlers = new Set<StatusHandler>();
   private capabilities: TheoryCapabilities | null = null;
+  private intentionalDisconnect = false;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly config: TheoryEngineConfig) {}
 
@@ -135,6 +137,7 @@ export class TheoryEngineClient {
     if (!this.sessionId) throw new Error("Theory session not created");
     if (this.ws?.readyState === WS_OPEN) return;
 
+    this.clearReconnect();
     const http = this.config.httpBaseUrl.replace(/\/$/, "");
     const wsBase = http.replace(/^http/, "ws");
     const url = `${wsBase}/sessions/${this.sessionId}/stream?token=${encodeURIComponent(this.config.authToken)}`;
@@ -144,20 +147,26 @@ export class TheoryEngineClient {
     this.ws = socket;
     socket.onopen = () => this.setStatus("connected");
     socket.onclose = () => {
-      this.setStatus("disconnected");
       this.ws = null;
+      this.setStatus("disconnected");
+      if (!this.intentionalDisconnect) this.scheduleReconnect();
     };
-    socket.onerror = () => this.setStatus("disconnected");
+    socket.onerror = () => {
+      socket.close();
+    };
     socket.onmessage = (msg) => this.dispatchFrame(String(msg.data));
   }
 
   async connect(sessionId?: string): Promise<void> {
+    this.intentionalDisconnect = false;
     await this.fetchCapabilities();
     await this.createSession(sessionId);
     this.connectStream();
   }
 
   disconnect(): void {
+    this.intentionalDisconnect = true;
+    this.clearReconnect();
     this.ws?.close();
     this.ws = null;
     this.setStatus("disconnected");
@@ -204,6 +213,22 @@ export class TheoryEngineClient {
     this.status = status;
     for (const handler of this.statusHandlers) {
       handler(status);
+    }
+  }
+
+  private scheduleReconnect(): void {
+    this.clearReconnect();
+    this.reconnectTimer = setTimeout(() => {
+      if (this.sessionId && !this.intentionalDisconnect) {
+        this.connectStream();
+      }
+    }, 2500);
+  }
+
+  private clearReconnect(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
   }
 }

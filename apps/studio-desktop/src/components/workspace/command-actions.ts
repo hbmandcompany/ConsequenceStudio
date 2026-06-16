@@ -2,7 +2,6 @@ import { snapTick } from "@consequence/audio";
 import { nativeBridge } from "@consequence/native";
 import {
   useArrangementStore,
-  useDoctorStore,
   useKeymapStore,
   usePianoRollStore,
   usePoetStore,
@@ -96,14 +95,13 @@ export function executeCommand(commandId: string): void {
       useWorkspaceStore.getState().togglePianoRollVisible();
       break;
     case "view.toggle-analysis":
-      useWorkspaceStore.getState().setActiveRightTab("analysis");
+      useWorkspaceStore.getState().focusAssistant("analysis");
       break;
     case "view.toggle-doctor":
-      useWorkspaceStore.getState().setActiveRightTab("doctor");
+      useWorkspaceStore.getState().focusAssistant("doctor");
       break;
     case "view.doctor-compose":
-      useWorkspaceStore.getState().setActiveRightTab("doctor");
-      useDoctorStore.getState().setPanelMode("compose");
+      useWorkspaceStore.getState().focusAssistant("doctor");
       break;
     case "view.keymap-settings":
       useKeymapStore.getState().openSettings();
@@ -124,15 +122,14 @@ export function executeCommand(commandId: string): void {
       useWorkspaceStore.getState().openFloppydiskBrowser();
       break;
     case "consequence.doctor-analyze":
-      useWorkspaceStore.getState().setActiveRightTab("doctor");
-      useDoctorStore.getState().setPanelMode("diagnose");
+      useWorkspaceStore.getState().focusAssistant("doctor");
       sendDoctorInstruction("Analyze the current session and report harmonic issues.");
       break;
     case "consequence.ledger":
-      useWorkspaceStore.getState().setActiveRightTab("ledger");
+      useWorkspaceStore.getState().focusAssistant("ledger");
       break;
     case "consequence.marketplace":
-      useWorkspaceStore.getState().setActiveRightTab("ledger");
+      useWorkspaceStore.getState().focusAssistant("ledger");
       break;
     case "palette.open":
       useWorkspaceStore.getState().openCommandPalette();

@@ -1,6 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
+function isTauriRuntime(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
 export interface BridgeError {
   code: string;
   message: string;
@@ -12,6 +16,13 @@ export interface SystemInfo {
   platform: string;
   architecture: string;
 }
+
+const BROWSER_SYSTEM_INFO: SystemInfo = {
+  cpu_count: typeof navigator !== "undefined" ? navigator.hardwareConcurrency ?? 4 : 4,
+  memory_total_mb: 8192,
+  platform: typeof navigator !== "undefined" ? navigator.platform : "browser",
+  architecture: "unknown",
+};
 
 export interface MidiDeviceInfo {
   id: string;
@@ -32,6 +43,7 @@ export interface MidiInputEvent {
 
 /** Typed Tauri command invocations matching Rust handlers in commands.rs. */
 export async function nativeGetSystemInfo(): Promise<SystemInfo> {
+  if (!isTauriRuntime()) return BROWSER_SYSTEM_INFO;
   return invoke<SystemInfo>("native_get_system_info");
 }
 

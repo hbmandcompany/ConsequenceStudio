@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { clampPixelsPerBar, TICKS_PER_BEAT, ticksPerBar } from "./arrangement-utils.js";
+import { clampPixelsPerBar, TICKS_PER_BEAT } from "./arrangement-utils.js";
 
 export interface ClipNote {
   pitch: number;
@@ -34,52 +34,9 @@ export interface ArrangementActions {
   addClip: (clip: ArrangementClip) => void;
 }
 
-const defaultClips: ArrangementClip[] = [
-  {
-    id: "clip-1",
-    trackId: "track-1",
-    name: "Chords",
-    startTick: 0,
-    durationTicks: ticksPerBar([4, 4]) * 2,
-    notes: [
-      { pitch: 60, tick: 0, duration: TICKS_PER_BEAT * 2 },
-      { pitch: 64, tick: 0, duration: TICKS_PER_BEAT * 2 },
-      { pitch: 67, tick: 0, duration: TICKS_PER_BEAT * 2 },
-      { pitch: 62, tick: TICKS_PER_BEAT * 2, duration: TICKS_PER_BEAT * 2 },
-      { pitch: 65, tick: TICKS_PER_BEAT * 2, duration: TICKS_PER_BEAT * 2 },
-      { pitch: 69, tick: TICKS_PER_BEAT * 2, duration: TICKS_PER_BEAT * 2 },
-    ],
-  },
-  {
-    id: "clip-2",
-    trackId: "track-2",
-    name: "Bass",
-    startTick: 0,
-    durationTicks: ticksPerBar([4, 4]) * 4,
-    notes: [
-      { pitch: 36, tick: 0, duration: TICKS_PER_BEAT },
-      { pitch: 36, tick: TICKS_PER_BEAT * 2, duration: TICKS_PER_BEAT },
-      { pitch: 38, tick: TICKS_PER_BEAT * 4, duration: TICKS_PER_BEAT },
-      { pitch: 41, tick: TICKS_PER_BEAT * 6, duration: TICKS_PER_BEAT },
-    ],
-  },
-  {
-    id: "clip-3",
-    trackId: "track-3",
-    name: "Beat",
-    startTick: ticksPerBar([4, 4]),
-    durationTicks: ticksPerBar([4, 4]),
-    notes: [
-      { pitch: 42, tick: 0, duration: 120 },
-      { pitch: 42, tick: TICKS_PER_BEAT, duration: 120 },
-      { pitch: 46, tick: TICKS_PER_BEAT * 2, duration: 120 },
-      { pitch: 42, tick: TICKS_PER_BEAT * 3, duration: 120 },
-    ],
-  },
-];
 
 export const useArrangementStore = create<ArrangementState & ArrangementActions>((set) => ({
-  clips: defaultClips,
+  clips: [],
   selectedClipIds: [],
   scrollX: 0,
   pixelsPerBar: 120,

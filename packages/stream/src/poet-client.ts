@@ -1,4 +1,5 @@
 import type { StreamConfig } from "./config.js";
+import { resolveServiceWsUrl } from "./config.js";
 import type { ConnectionStatus } from "./types.js";
 import type { UnifiedStreamEvent } from "./types.js";
 import type {
@@ -48,11 +49,19 @@ export class PoetStreamClient {
   connect(sessionId: string, poetWsUrl?: string): void {
     this.sessionId = sessionId;
     this.clearTimers();
+
+    const rawBase = poetWsUrl ?? this.config.poetWsUrl;
+    const base = resolveServiceWsUrl(rawBase);
+    if (!base) {
+      this.setPoetConnectionState("disconnected");
+      this.setStatus("disconnected");
+      return;
+    }
+
     this.setPoetConnectionState("connecting");
     this.setStatus("connecting");
 
-    const base = poetWsUrl ?? this.config.poetWsUrl;
-    const url = `${base.replace(/\/$/, "")}/ws/${sessionId}`;
+    const url = `${base}/ws/${sessionId}`;
 
     try {
       this.ws = new WebSocket(url);

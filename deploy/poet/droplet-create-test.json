@@ -1,0 +1,6 @@
+{
+  "name": "test-small-droplet",
+  "region": "nyc3",
+  "size": "s-1vcpu-1gb",
+  "image": "ubuntu-22-04-x64"
+}

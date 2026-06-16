@@ -33,10 +33,10 @@ function createStars(count: number, width: number, height: number): Star[] {
 }
 
 const NEBULAE: Omit<Nebula, "x" | "y">[] = [
-  { radius: 320, color: [58, 58, 122], driftX: 0.00008, driftY: 0.00005, phase: 0 },
-  { radius: 280, color: [90, 58, 122], driftX: 0.00006, driftY: 0.00009, phase: 1.2 },
-  { radius: 240, color: [42, 74, 122], driftX: 0.0001, driftY: 0.00004, phase: 2.4 },
-  { radius: 200, color: [74, 58, 90], driftX: 0.00007, driftY: 0.00008, phase: 3.8 },
+  { radius: 340, color: [60, 60, 60], driftX: 0.00008, driftY: 0.00005, phase: 0 },
+  { radius: 280, color: [45, 45, 45], driftX: 0.00006, driftY: 0.00009, phase: 1.2 },
+  { radius: 240, color: [35, 35, 35], driftX: 0.0001, driftY: 0.00004, phase: 2.4 },
+  { radius: 200, color: [50, 50, 50], driftX: 0.00007, driftY: 0.00008, phase: 3.8 },
 ];
 
 export function SpaceBackground() {
@@ -112,14 +112,14 @@ export function SpaceBackground() {
 
         ctx.beginPath();
         ctx.arc(px, py, size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(180, 190, 255, ${alpha})`;
+        ctx.fillStyle = `rgba(220, 220, 220, ${alpha})`;
         ctx.fill();
       }
 
       // Galactic core glow
       const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 80);
-      coreGrad.addColorStop(0, "rgba(255, 255, 255, 0.5)");
-      coreGrad.addColorStop(0.3, "rgba(200, 210, 255, 0.2)");
+      coreGrad.addColorStop(0, "rgba(255, 255, 255, 0.4)");
+      coreGrad.addColorStop(0.3, "rgba(180, 180, 180, 0.12)");
       coreGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = coreGrad;
       ctx.beginPath();

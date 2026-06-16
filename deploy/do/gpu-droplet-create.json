@@ -1,0 +1,10 @@
+{
+  "name": "consequence-conductor-gpu",
+  "region": "ams3",
+  "size": "gpu-h100x1-80gb",
+  "image": "ubuntu-22-04-x64",
+  "ssh_keys": [57138597],
+  "tags": ["consequence", "conductor", "gpu"],
+  "monitoring": true,
+  "user_data": "#!/bin/bash\nset -euo pipefail\nexport DEBIAN_FRONTEND=noninteractive\napt-get update\napt-get install -y docker.io curl ca-certificates gnupg\nsystemctl enable docker\nsystemctl start docker\ncurl -fsSL https://deb.nodesource.com/setup_22.x | bash -\napt-get install -y nodejs\nmkdir -p /opt/consequence/conductor /opt/consequence/doctor\ndocker run -d --name vllm --gpus all --restart unless-stopped -p 8001:8000 -v /root/.cache/huggingface:/root/.cache/huggingface --ipc=host vllm/vllm-openai:latest --model Qwen/Qwen2.5-72B-Instruct --max-model-len 8192 --dtype auto\nufw allow 22/tcp || true\nufw allow 8000/tcp || true\nufw allow 8082/tcp || true\nufw --force enable || true\necho done > /var/log/consequence-bootstrap.done\n"
+}

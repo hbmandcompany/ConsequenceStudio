@@ -13,6 +13,14 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
+    proxy: {
+      "/conductor": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/conductor/, ""),
+      },
+    },
   },
   envPrefix: ["VITE_"],
   build: {

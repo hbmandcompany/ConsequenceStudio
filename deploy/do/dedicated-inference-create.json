@@ -1,0 +1,19 @@
+{
+  "spec": {
+    "version": 1,
+    "name": "consequence-conductor-qwen72b",
+    "region": "nyc2",
+    "vpc": { "uuid": "b6deab60-ccf9-40aa-b253-1fd6fbbff7e2" },
+    "enable_public_endpoint": true,
+    "model_deployments": [{
+      "model_slug": "Qwen/Qwen2.5-72B-Instruct",
+      "model_provider": "hugging_face",
+      "workload_config": {},
+      "accelerators": [{
+        "scale": 1,
+        "type": "prefill_decode",
+        "accelerator_slug": "gpu-h200x1-141gb"
+      }]
+    }]
+  }
+}

@@ -2,6 +2,18 @@
 
 export const TICKS_PER_BEAT = 480;
 
+/** Hard cap on arrangement length, in wall-clock minutes. */
+export const MAX_ARRANGEMENT_MINUTES = 5;
+
+/**
+ * Maximum number of ticks the arrangement may span, derived from the 5-minute
+ * cap. Tempo is in BPM (quarter notes per minute) and TICKS_PER_BEAT is a
+ * quarter note, so this is independent of the time signature.
+ */
+export function maxArrangementTicks(tempo: number): number {
+  return Math.round(tempo * TICKS_PER_BEAT * MAX_ARRANGEMENT_MINUTES);
+}
+
 export function ticksPerBar(timeSignature: [number, number]): number {
   const [numerator, denominator] = timeSignature;
   return TICKS_PER_BEAT * numerator * (4 / denominator);

@@ -13,29 +13,14 @@ import {
   useTheoryStore,
   getMusicalContextForGeneration,
 } from "@consequence/state";
-import {
-  UnifiedStream,
-  loadStreamConfig,
-  collaborationChat,
-  collaborationChat2,
-  collaborationChat3,
-  collaborationChat4,
-  collaborationChat5,
-  collaborationPresence,
-  collaborationPresence2,
-  collaborationPresence3,
-  doctorDiagnostic,
-  doctorSuggestion,
-  ledgerUpdate,
-  theoryAnalysisFrame,
-} from "@consequence/stream";
+import { UnifiedStream, loadStreamConfig } from "@consequence/stream";
 import { nativeBridge } from "@consequence/native";
 import { ResizablePanel, StatusBar, TransportBar, NotificationToast, showNotification } from "@consequence/ui";
 import { tokens } from "@consequence/ui/design-system";
 import { setWorkspaceStream } from "../../stream/workspace-stream";
 import { LeftPanel, RightPanel } from "./SidePanels";
 import { CanvasArea } from "./CanvasArea";
-import { CommandPaletteHost, useCommandPaletteTrigger } from "./CommandPaletteHost";
+import { CommandPaletteHost } from "./CommandPaletteHost";
 import { FloppydiskBrowser } from "./floppydisk/FloppydiskBrowser";
 
 const streamSingleton = new UnifiedStream(loadStreamConfig(), {
@@ -60,48 +45,21 @@ export function useWorkspaceInit() {
       useSystemStore.getState().setSystemInfo(info);
     });
 
-    let cancelled = false;
-    const bootstrapTheory = async () => {
-      const cmte = streamSingleton.cmte;
-      useTheoryStore.getState().setConnectionStatus("connecting");
-      try {
-        const caps = await cmte.engineClient.fetchCapabilities();
-        const session = await cmte.engineClient.createSession();
-        if (cancelled) return;
-        useTheoryStore.getState().setSession(session.session_id, caps.version);
-        cmte.engineClient.connectStream();
-        await new Promise((r) => setTimeout(r, 150));
-        await cmte.postEvents([
-          { session_id: session.session_id, track_id: "track-1", timestamp_ms: 0, tick: 0, event_type: "note_on", pitch: 60, velocity: 100 },
-          { session_id: session.session_id, track_id: "track-1", timestamp_ms: 1, tick: 0, event_type: "note_on", pitch: 64, velocity: 100 },
-          { session_id: session.session_id, track_id: "track-1", timestamp_ms: 2, tick: 0, event_type: "note_on", pitch: 67, velocity: 100 },
-        ]);
-      } catch {
-        if (!cancelled) useTheoryStore.getState().setConnectionStatus("disconnected");
-      }
-    };
-
     const unsubTheoryStatus = streamSingleton.cmte.onStatus((status) => {
       useTheoryStore.getState().setConnectionStatus(status);
+      if (status === "connected") {
+        const client = streamSingleton.cmte.engineClient;
+        const sessionId = client.getSessionId();
+        if (sessionId) {
+          useTheoryStore.getState().setSession(
+            sessionId,
+            client.getCapabilities()?.version ?? null,
+          );
+        }
+      }
     });
 
-    void bootstrapTheory();
-
-    streamSingleton.emit(doctorDiagnostic);
-    streamSingleton.emit(doctorSuggestion);
-    streamSingleton.emit(ledgerUpdate);
-    streamSingleton.emit(collaborationPresence);
-    streamSingleton.emit(collaborationPresence2);
-    streamSingleton.emit(collaborationPresence3);
-    streamSingleton.emit(collaborationChat);
-    streamSingleton.emit(collaborationChat2);
-    streamSingleton.emit(collaborationChat3);
-    streamSingleton.emit(collaborationChat4);
-    streamSingleton.emit(collaborationChat5);
-    streamSingleton.cmte.simulateFrame(theoryAnalysisFrame);
-
     return () => {
-      cancelled = true;
       unsubTheoryStatus();
       unsubStatus();
       unbindPoet();
@@ -127,6 +85,8 @@ export function WorkspaceLayout() {
   const setSessionName = useSessionStore((s) => s.setSessionName);
   const togglePlay = useSessionStore((s) => s.togglePlay);
   const seekToStart = useSessionStore((s) => s.seekToStart);
+  const goToPreviousMarker = useSessionStore((s) => s.goToPreviousMarker);
+  const goToNextMarker = useSessionStore((s) => s.goToNextMarker);
   const setTempo = useSessionStore((s) => s.setTempo);
   const setTimeSignature = useSessionStore((s) => s.setTimeSignature);
 
@@ -145,9 +105,13 @@ export function WorkspaceLayout() {
   const tension = useAnalysisStore((s) => s.tension);
   const projectedEarnings = useLedgerStore((s) => s.projectedEarningsUsdc);
   const selectedNoteIds = usePianoRollStore((s) => s.selectedNoteIds);
-  const openCommandPalette = useCommandPaletteTrigger();
-  const openFloppydiskBrowser = useWorkspaceStore((s) => s.openFloppydiskBrowser);
-  const setActiveRightTab = useWorkspaceStore((s) => s.setActiveRightTab);
+  const allNotes = usePianoRollStore((s) => s.notes);
+  const rightPanelOpen = useWorkspaceStore((s) => s.rightPanelOpen);
+  const rightPanelView = useWorkspaceStore((s) => s.rightPanelView);
+  const toggleRightPanel = useWorkspaceStore((s) => s.toggleRightPanel);
+  const showAssistant = useWorkspaceStore((s) => s.showAssistant);
+  const showCollab = useWorkspaceStore((s) => s.showCollab);
+  const focusAssistant = useWorkspaceStore((s) => s.focusAssistant);
   const poetStreaming = usePoetStore((s) => s.is_streaming);
   const poetSupervisionPending = usePoetStore((s) => s.supervision_pending);
   const poetConnected = usePoetStore((s) => s.connection_state === "connected");
@@ -171,23 +135,32 @@ export function WorkspaceLayout() {
         memoryPercent={memoryPercent}
         connections={[
           { label: "Stream", status: connectionStatus.consequenceStream },
-          { label: "CMTE", status: connectionStatus.cmte },
-          { label: "Doctor", status: connectionStatus.doctor },
+          { label: "Theory", status: connectionStatus.cmte },
           { label: "Ledger", status: connectionStatus.ledger },
           { label: "Disk", status: connectionStatus.floppydisk },
         ]}
         participantCount={participantCount}
         stakingTier={2}
         stakingTierName="Creator"
+        assistantOpen={rightPanelOpen && rightPanelView === "assistant"}
+        profileInitial={(sessionName.trim()[0] ?? "U").toUpperCase()}
         onSessionNameChange={setSessionName}
         onTogglePlay={togglePlay}
         onToggleRecord={toggleRecording}
         onToggleLoop={toggleLoop}
         onSeekToStart={seekToStart}
+        onPreviousMarker={goToPreviousMarker}
+        onNextMarker={goToNextMarker}
         onTempoChange={setTempo}
         onTimeSignatureChange={setTimeSignature}
-        onCommandPalette={openCommandPalette}
-        onFloppydiskBrowser={openFloppydiskBrowser}
+        onOpenCollab={showCollab}
+        onToggleAssistant={() => {
+          if (rightPanelOpen && rightPanelView === "assistant") {
+            toggleRightPanel();
+          } else {
+            showAssistant();
+          }
+        }}
       />
 
       <CommandPaletteHost />
@@ -207,24 +180,26 @@ export function WorkspaceLayout() {
 
         <CanvasArea />
 
-        <ResizablePanel
-          width={rightWidth}
-          minWidth={tokens.spacing.rightPanelMinWidth}
-          maxWidth={tokens.spacing.rightPanelMaxWidth}
-          onWidthChange={setRightWidth}
-          edge="left"
-        >
-          <RightPanel />
-        </ResizablePanel>
+        {rightPanelOpen && (
+          <ResizablePanel
+            width={rightWidth}
+            minWidth={tokens.spacing.rightPanelMinWidth}
+            maxWidth={tokens.spacing.rightPanelMaxWidth}
+            onWidthChange={setRightWidth}
+            edge="left"
+          >
+            <RightPanel />
+          </ResizablePanel>
+        )}
       </div>
 
       <StatusBar
         selectedNoteCount={selectedNoteIds.length}
-        timeRange="—"
-        pitchRange="—"
+        selectedNotePitches={allNotes.filter((n) => selectedNoteIds.includes(n.id)).map((n) => n.pitch)}
+        selectedNoteTicks={allNotes.filter((n) => selectedNoteIds.includes(n.id)).map((n) => n.tick)}
         quantization={quantization}
         snap={snap}
-        key={key}
+        tonalKey={key}
         mode={mode}
         tension={tension}
         streamLatencyMs={streamLatencyMs}
@@ -236,7 +211,7 @@ export function WorkspaceLayout() {
               ? "review"
               : "idle"
         }
-        onPoetStatusClick={() => setActiveRightTab("poet")}
+        onPoetStatusClick={() => focusAssistant("poet")}
       />
     </div>
   );

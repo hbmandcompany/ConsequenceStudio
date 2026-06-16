@@ -1,4 +1,4 @@
-import { loadStreamConfig, type StreamConfig } from "./config.js";
+import { loadStreamConfig, resolveServiceWsUrl, type StreamConfig } from "./config.js";
 import { CmteClient } from "./cmte-client.js";
 import { DoctorClient } from "./doctor-client.js";
 import { FloppydiskClient } from "./floppydisk-client.js";
@@ -71,7 +71,11 @@ export class UnifiedStream {
   }
 
   connectPoet(sessionId: string): void {
-    this.poet.connect(sessionId);
+    const wsBase =
+      resolveServiceWsUrl(this.config.poetWsUrl) ??
+      resolveServiceWsUrl(this.config.conductorHttpUrl);
+    if (!wsBase) return;
+    this.poet.connect(sessionId, wsBase);
     this.bindPoetForwarding();
   }
 
@@ -82,6 +86,9 @@ export class UnifiedStream {
     this.floppydisk.connect();
     this.bindForwarding();
     this.bindStatusForwarding();
+    void this.cmte.connect("studio-session-1").catch(() => {
+      // Theory engine may be offline; status listeners reflect disconnected.
+    });
   }
 
   streamEnabled(): boolean {

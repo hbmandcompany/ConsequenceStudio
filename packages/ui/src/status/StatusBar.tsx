@@ -1,13 +1,22 @@
 import { tokens } from "../design-system/tokens.js";
 import { LatencyMeter } from "./LatencyMeter.js";
 
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+function pitchName(midi: number) {
+  const oct = Math.floor(midi / 12) - 1;
+  return `${NOTE_NAMES[midi % 12]}${oct}`;
+}
+
 export interface StatusBarProps {
   selectedNoteCount: number;
-  timeRange: string;
-  pitchRange: string;
+  /** MIDI pitches of selected notes — StatusBar derives the display strings. */
+  selectedNotePitches?: number[];
+  /** MIDI ticks of selected notes (start tick). */
+  selectedNoteTicks?: number[];
   quantization: string;
   snap: string;
-  key: string | null;
+  tonalKey: string | null;
   mode: string | null;
   tension: number;
   streamLatencyMs: number;
@@ -18,11 +27,11 @@ export interface StatusBarProps {
 
 export function StatusBar({
   selectedNoteCount,
-  timeRange,
-  pitchRange,
+  selectedNotePitches = [],
+  selectedNoteTicks = [],
   quantization,
   snap,
-  key,
+  tonalKey,
   mode,
   tension,
   streamLatencyMs,
@@ -30,7 +39,17 @@ export function StatusBar({
   poetStatus = "idle",
   onPoetStatusClick,
 }: StatusBarProps) {
-  const keyLabel = key && mode ? `${key} ${mode}` : "—";
+  const keyLabel = tonalKey && mode ? `${tonalKey} ${mode}` : "";
+
+  const pitchRange =
+    selectedNotePitches.length > 0
+      ? `${pitchName(Math.min(...selectedNotePitches))}–${pitchName(Math.max(...selectedNotePitches))}`
+      : "";
+
+  const timeRange =
+    selectedNoteTicks.length > 0
+      ? `${Math.min(...selectedNoteTicks)}–${Math.max(...selectedNoteTicks)} ticks`
+      : "";
 
   return (
     <footer
@@ -45,11 +64,13 @@ export function StatusBar({
       }}
     >
       <span>
-        {selectedNoteCount} notes · {timeRange} · {pitchRange}
+        {selectedNoteCount > 0 ? `${selectedNoteCount} note${selectedNoteCount === 1 ? "" : "s"}` : "No selection"}
+        {timeRange ? ` · ${timeRange}` : ""}
+        {pitchRange ? ` · ${pitchRange}` : ""}
       </span>
       <span>Q {quantization}</span>
       <span>Snap {snap}</span>
-      <span>{keyLabel}</span>
+      {keyLabel && <span>{keyLabel}</span>}
       <span className="flex items-center gap-1">
         Tension
         <span

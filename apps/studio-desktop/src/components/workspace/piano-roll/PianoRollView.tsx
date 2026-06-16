@@ -266,25 +266,6 @@ export function PianoRollView({ width, height }: { width: number; height: number
               }}
               onReject={rejectDoctorSuggestion}
             />
-            {monteCarlo?.melodic_ghosts.map((ghost, index) => {
-              const x = tickToX(ghost.tick, pixelsPerBar, timeSignature, scrollX);
-              const y = pitchToY(ghost.pitch, rowHeight, scrollY);
-              const w = Math.max(3, ghost.duration_ticks * pixelsPerTick(pixelsPerBar, timeSignature));
-              return (
-                <div
-                  key={`ghost-${index}`}
-                  className="pointer-events-none absolute rounded-sm"
-                  style={{
-                    left: x,
-                    top: y,
-                    width: w,
-                    height: rowHeight - 2,
-                    backgroundColor: "rgba(90,58,122,0.35)",
-                    border: "1px solid rgba(90,58,122,0.6)",
-                  }}
-                />
-              );
-            })}
           </div>
         </div>
         <div className="flex" style={{ borderTop: `1px solid ${tokens.colors.border.hairline}` }}>

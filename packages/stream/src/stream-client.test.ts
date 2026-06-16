@@ -20,7 +20,9 @@ const baseConfig = {
   floppydiskHttpUrl: "http://localhost:8084",
   floppydiskWsUrl: "ws://localhost:0",
   theoryEngineHttpUrl: "http://127.0.0.1:8741",
-  theoryEngineAuthToken: "dev-secret-change-in-production",
+  theoryEngineAuthToken: "test-token",
+  conductorHttpUrl: "http://127.0.0.1:8000",
+  conductorAuthToken: "test-token",
 };
 
 describe("StreamClient", () => {
