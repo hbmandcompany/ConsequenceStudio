@@ -11,16 +11,19 @@ if (!platform) {
   process.exit(1);
 }
 
-const bundleSrc = path.resolve(
-  "apps/studio-desktop/src-tauri/target/release/bundle",
-);
+const targetRoot = path.resolve("apps/studio-desktop/src-tauri/target");
+const bundleCandidates = [
+  path.join(targetRoot, "release/bundle"),
+  path.join(targetRoot, "universal-apple-darwin/release/bundle"),
+  path.join(targetRoot, "x86_64-pc-windows-msvc/release/bundle"),
+  path.join(targetRoot, "aarch64-apple-darwin/release/bundle"),
+  path.join(targetRoot, "x86_64-unknown-linux-gnu/release/bundle"),
+];
+
+const bundleSrc = bundleCandidates.find((candidate) => fs.existsSync(candidate));
 const dest = path.resolve(`release-artifacts/${platform}`);
 
 function copyRecursive(src, dst) {
-  if (!fs.existsSync(src)) {
-    console.error(`[collect-bundle] missing bundle dir: ${src}`);
-    process.exit(1);
-  }
   fs.mkdirSync(dst, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const from = path.join(src, entry.name);
@@ -28,6 +31,12 @@ function copyRecursive(src, dst) {
     if (entry.isDirectory()) copyRecursive(from, to);
     else fs.copyFileSync(from, to);
   }
+}
+
+if (!bundleSrc) {
+  console.error("[collect-bundle] missing bundle dir. Checked:");
+  for (const candidate of bundleCandidates) console.error(`  - ${candidate}`);
+  process.exit(1);
 }
 
 copyRecursive(bundleSrc, dest);
