@@ -9,6 +9,9 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
 fi
 
 TARGET="${GITHUB_CODE_MIRROR_REPO:-}"
+if [ -n "$TARGET" ]; then
+  TARGET=$(echo "$TARGET" | sed -E 's#.*github.com/([^/]+/[^/]+).*#\1#')
+fi
 if [ -z "$TARGET" ]; then
   echo "[mirror] GITHUB_CODE_MIRROR_REPO is not set — skipping (releases still use GITHUB_REPO)"
   exit 0

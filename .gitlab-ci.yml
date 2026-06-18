@@ -151,6 +151,7 @@ mirror:github:
   variables:
     GIT_DEPTH: "0"
   script:
+    - export GITHUB_TOKEN="${GITHUB_TOKEN:-$Github}"
     - sh deploy/release/mirror-git.sh
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
@@ -169,6 +170,7 @@ release:mirror:
       artifacts: true
       optional: true
   script:
+    - export GITHUB_TOKEN="${GITHUB_TOKEN:-$Github}"
     - node deploy/release/mirror-release.mjs
   artifacts:
     paths:

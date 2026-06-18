@@ -260,12 +260,20 @@ async function createGitLabRelease(token, projectId, apiBase, tag, version, asse
   }
 }
 
+function normalizeGithubRepo(value) {
+  const trimmed = value.trim().replace(/\/$/, "");
+  const match = trimmed.match(/github\.com\/([^/]+\/[^/]+)/i);
+  if (match) return match[1];
+  return trimmed;
+}
+
 async function main() {
   const tag = process.env.CI_COMMIT_TAG;
   if (!tag) fail("CI_COMMIT_TAG is required (push a tag like v0.1.0)");
 
-  const githubToken = process.env.GITHUB_TOKEN?.trim();
-  const githubRepo = process.env.GITHUB_REPO?.trim();
+  const githubToken =
+    process.env.GITHUB_TOKEN?.trim() || process.env.Github?.trim();
+  const githubRepo = normalizeGithubRepo(process.env.GITHUB_REPO ?? "");
   if (!githubToken) fail("GITHUB_TOKEN is required to mirror releases to GitHub");
   if (!githubRepo) fail("GITHUB_REPO is required (e.g. hbmandcompany/Consequence)");
 
