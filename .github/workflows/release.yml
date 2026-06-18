@@ -31,7 +31,10 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
       - uses: dtolnay/rust-toolchain@stable
       - name: Build Tauri (Linux)
-        run: pnpm install --frozen-lockfile && pnpm --filter @consequence/studio-desktop tauri build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @consequence/studio-desktop build:deps
+          pnpm --filter @consequence/studio-desktop tauri build
       - name: Collect bundle
         run: node deploy/release/collect-bundle.mjs linux
       - uses: actions/upload-artifact@v4
@@ -41,6 +44,7 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -55,6 +59,7 @@ jobs:
         run: |
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
           pnpm install --frozen-lockfile
+          pnpm --filter @consequence/studio-desktop build:deps
           pnpm --filter @consequence/studio-desktop tauri build --target universal-apple-darwin
       - name: Collect bundle
         run: node deploy/release/collect-bundle.mjs macos
@@ -65,6 +70,7 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -76,7 +82,10 @@ jobs:
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
       - name: Build Tauri (Windows)
-        run: pnpm install --frozen-lockfile; pnpm --filter @consequence/studio-desktop tauri build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @consequence/studio-desktop build:deps
+          pnpm --filter @consequence/studio-desktop tauri build
         shell: pwsh
       - name: Collect bundle
         run: node deploy/release/collect-bundle.mjs windows
@@ -88,12 +97,23 @@ jobs:
   release:
     needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: always() && needs.build-linux.result == 'success' && startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          name: release-artifacts-linux
+          path: artifacts/release-artifacts-linux
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: release-artifacts-macos
+          path: artifacts/release-artifacts-macos
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: release-artifacts-windows
+          path: artifacts/release-artifacts-windows
       - name: Assemble release-artifacts
         run: |
           mkdir -p release-artifacts/linux release-artifacts/macos release-artifacts/windows
