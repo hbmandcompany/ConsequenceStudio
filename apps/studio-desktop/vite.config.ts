@@ -14,6 +14,12 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     proxy: {
+      "/gateway": {
+        target: "http://165.227.252.58:8001",
+        changeOrigin: true,
+        ws: true,
+        rewrite: (path) => path.replace(/^\/gateway/, ""),
+      },
       "/conductor": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,

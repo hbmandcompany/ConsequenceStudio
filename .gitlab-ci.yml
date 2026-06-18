@@ -16,6 +16,12 @@ variables:
   GITHUB_REPO: "hbmandcompany/Consequence"
   # Optional: mirror studio *source* to GitHub for Actions (releases still go to GITHUB_REPO).
   GITHUB_CODE_MIRROR_REPO: "hbmandcompany/ConsequenceStudio"
+  # Baked into Tauri/Vite production builds (hub mode → DO gateway).
+  VITE_STREAM_GATEWAY_URL: "http://165.227.252.58:8001"
+  VITE_STREAM_HUB_MODE: "true"
+  VITE_STUDIO_ENABLE_STREAM: "true"
+  VITE_THEORY_ENGINE_AUTH_TOKEN: "a2c1d096fbe48357"
+  VITE_STUDIO_CONDUCTOR_AUTH_TOKEN: "dev-secret-change-in-production"
 
 .default_before_script: &default_before_script
   - corepack enable

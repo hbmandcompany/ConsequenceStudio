@@ -1,5 +1,7 @@
 /** Centralized service URL configuration — no hardcoded endpoints in clients. */
 export interface StreamConfig {
+  streamHubMode: boolean;
+  streamGatewayUrl: string;
   consequenceStreamWsUrl: string;
   cmteWsUrl: string;
   doctorWsUrl: string;
@@ -26,6 +28,31 @@ function envFlag(value: string | undefined, fallback = false): boolean {
   return value === "true" || value === "1";
 }
 
+/** Public Studio Hub base URL (HTTP or dev proxy path like /gateway). */
+export function resolveStreamGatewayBase(): string {
+  const proxy = import.meta.env.VITE_STREAM_GATEWAY_PROXY?.trim();
+  if (proxy) return proxy.replace(/\/$/, "");
+  const url = import.meta.env.VITE_STREAM_GATEWAY_URL?.trim() ?? "";
+  return url.replace(/\/$/, "");
+}
+
+export function streamHubMode(): boolean {
+  return envFlag(import.meta.env.VITE_STREAM_HUB_MODE);
+}
+
+/** Build hub WebSocket URL for unified ecosystem stream. */
+export function buildHubStreamUrl(sessionId: string, config: StreamConfig): string {
+  const gateway = resolveStreamGatewayBase();
+  const wsBase = resolveServiceWsUrl(gateway);
+  if (!wsBase) {
+    throw new Error("VITE_STREAM_GATEWAY_URL or VITE_STREAM_GATEWAY_PROXY is not configured");
+  }
+  const token = config.theoryEngineAuthToken || config.conductorAuthToken;
+  const params = new URLSearchParams({ session_id: sessionId });
+  if (token) params.set("token", token);
+  return `${wsBase}/stream?${params.toString()}`;
+}
+
 /** Resolve HTTP(S) or relative proxy paths to a WebSocket base URL. */
 export function resolveServiceWsUrl(url: string): string | null {
   const trimmed = url.trim();
@@ -45,6 +72,8 @@ export function resolveServiceWsUrl(url: string): string | null {
 }
 
 export function loadStreamConfig(): StreamConfig {
+  const hubMode = streamHubMode();
+  const gatewayBase = resolveStreamGatewayBase();
   const conductorHttpUrl = import.meta.env.VITE_STUDIO_CONDUCTOR_HTTP_URL ?? "";
   const explicitPoetWs =
     import.meta.env.VITE_STUDIO_POET_WS_URL ?? import.meta.env.VITE_POET_WS_URL ?? "";
@@ -62,7 +91,21 @@ export function loadStreamConfig(): StreamConfig {
     import.meta.env.VITE_LEDGER_HTTP_URL ??
     "http://localhost:8002";
 
+  const theoryEngineHttpUrl = hubMode
+    ? gatewayBase
+      ? `${gatewayBase}/theory`
+      : ""
+    : (import.meta.env.VITE_THEORY_ENGINE_HTTP_URL ?? "");
+
+  const resolvedConductorHttpUrl = hubMode
+    ? gatewayBase
+      ? `${gatewayBase}/conductor`
+      : ""
+    : conductorHttpUrl;
+
   return {
+    streamHubMode: hubMode,
+    streamGatewayUrl: gatewayBase,
     consequenceStreamWsUrl: streamUrl,
     cmteWsUrl: import.meta.env.VITE_CMTE_WS_URL ?? "ws://localhost:8081/cmte",
     doctorWsUrl: import.meta.env.VITE_DOCTOR_WS_URL ?? "ws://localhost:8082/doctor",
@@ -70,7 +113,7 @@ export function loadStreamConfig(): StreamConfig {
     floppydiskHttpUrl:
       import.meta.env.VITE_FLOPPYDISK_HTTP_URL ?? "http://localhost:8084",
     floppydiskWsUrl: import.meta.env.VITE_FLOPPYDISK_WS_URL ?? "ws://localhost:8084/ws",
-    theoryEngineHttpUrl: import.meta.env.VITE_THEORY_ENGINE_HTTP_URL ?? "",
+    theoryEngineHttpUrl,
     theoryEngineAuthToken: import.meta.env.VITE_THEORY_ENGINE_AUTH_TOKEN ?? "",
     poetWsUrl,
     poetHttpUrl,
@@ -82,7 +125,7 @@ export function loadStreamConfig(): StreamConfig {
     studioEnableStream: envFlag(import.meta.env.VITE_STUDIO_ENABLE_STREAM),
     studioEnableLedger: envFlag(import.meta.env.VITE_STUDIO_ENABLE_LEDGER),
     studioLedgerHttpUrl: ledgerHttpUrl,
-    conductorHttpUrl,
+    conductorHttpUrl: resolvedConductorHttpUrl,
     conductorAuthToken:
       import.meta.env.VITE_STUDIO_CONDUCTOR_AUTH_TOKEN ??
       import.meta.env.VITE_CONDUCTOR_AUTH_TOKEN ??

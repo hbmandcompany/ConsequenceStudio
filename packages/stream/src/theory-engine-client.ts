@@ -10,6 +10,7 @@ import type {
 export interface TheoryEngineConfig {
   httpBaseUrl: string;
   authToken: string;
+  hubMode?: boolean;
 }
 
 type FrameHandler = (frame: TheoryAnalysisFrame) => void;
@@ -56,10 +57,16 @@ export class TheoryEngineClient {
     return () => this.statusHandlers.delete(handler);
   }
 
+  private theoryHeaders(): HeadersInit {
+    if (!this.config.authToken) return {};
+    return { Authorization: `Bearer ${this.config.authToken}` };
+  }
+
   async fetchCapabilities(): Promise<TheoryCapabilities> {
     const base = this.config.httpBaseUrl.replace(/\/$/, "");
+    const headers = this.theoryHeaders();
     try {
-      const response = await fetch(`${base}/capabilities`);
+      const response = await fetch(`${base}/capabilities`, { headers });
       if (response.ok) {
         this.capabilities = (await response.json()) as TheoryCapabilities;
         return this.capabilities;
@@ -68,7 +75,7 @@ export class TheoryEngineClient {
       // fall through to /health
     }
 
-    const health = await fetch(`${base}/health`);
+    const health = await fetch(`${base}/health`, { headers });
     if (!health.ok) {
       throw new Error(`Theory engine unreachable at ${base}`);
     }
@@ -161,7 +168,11 @@ export class TheoryEngineClient {
     this.intentionalDisconnect = false;
     await this.fetchCapabilities();
     await this.createSession(sessionId);
-    this.connectStream();
+    if (!this.config.hubMode) {
+      this.connectStream();
+    } else {
+      this.setStatus("connected");
+    }
   }
 
   disconnect(): void {

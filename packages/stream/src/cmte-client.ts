@@ -20,6 +20,7 @@ export class CmteClient {
     this.engine = new TheoryEngineClient({
       httpBaseUrl: config.theoryEngineHttpUrl,
       authToken: config.theoryEngineAuthToken,
+      hubMode: config.streamHubMode,
     });
   }
 

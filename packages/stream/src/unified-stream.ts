@@ -1,4 +1,4 @@
-import { loadStreamConfig, resolveServiceWsUrl, type StreamConfig } from "./config.js";
+import { loadStreamConfig, resolveServiceWsUrl, buildHubStreamUrl, type StreamConfig } from "./config.js";
 import { CmteClient } from "./cmte-client.js";
 import { DoctorClient } from "./doctor-client.js";
 import { FloppydiskClient } from "./floppydisk-client.js";
@@ -7,8 +7,10 @@ import { PoetStreamClient } from "./poet-client.js";
 import type { GetMusicalContext, OnPoetConnectionState, OnPoetNotification } from "./poet-client.js";
 import type { EcosystemStreamEnvelope } from "./ecosystem-stream.js";
 import { StreamClient } from "./stream-client.js";
+import { TheoryEngineClient } from "./theory-engine-client.js";
 import type { ConnectionStatus } from "./types.js";
 import type { UnifiedStreamEvent } from "./types.js";
+import { WebSocketClient } from "./ws-client.js";
 
 export type ServiceName =
   | "consequenceStream"
@@ -30,6 +32,8 @@ export class UnifiedStream {
   readonly poet: PoetStreamClient;
 
   private readonly config: StreamConfig;
+  private readonly hubSessionId = "studio-session-1";
+  private readonly hubWs = new WebSocketClient();
   private listeners = new Set<(event: UnifiedStreamEvent) => void>();
   private statusListeners = new Set<(status: ConnectionMap) => void>();
   private unsubs: Array<() => void> = [];
@@ -80,6 +84,16 @@ export class UnifiedStream {
   }
 
   connectAll(): void {
+    if (this.config.streamHubMode) {
+      this.hubWs.connect(buildHubStreamUrl(this.hubSessionId, this.config));
+      this.bindHubForwarding();
+      this.bindHubStatusForwarding();
+      void this.cmte.connect(this.hubSessionId).catch(() => {
+        // Theory HTTP session may fail if hub proxy is offline.
+      });
+      return;
+    }
+
     if (this.streamEnabled()) this.stream.connect();
     this.doctor.connect();
     if (this.ledgerEnabled()) this.ledger.connect();
@@ -101,13 +115,18 @@ export class UnifiedStream {
 
   /** Publish audit events to ConsequenceStream when enabled. */
   publishAudit(envelope: EcosystemStreamEnvelope): void {
-    if (!this.streamEnabled()) return;
+    if (!this.streamEnabled() && !this.config.streamHubMode) return;
+    if (this.config.streamHubMode) {
+      this.hubWs.send({ command: "ecosystem_event", ...envelope });
+      return;
+    }
     this.stream.publishAudit(envelope);
   }
 
   disconnectAll(): void {
     for (const unsub of this.unsubs) unsub();
     this.unsubs = [];
+    this.hubWs.disconnect();
     this.stream.disconnect();
     this.cmte.disconnect();
     this.doctor.disconnect();
@@ -129,6 +148,17 @@ export class UnifiedStream {
   }
 
   getConnectionStatus(): ConnectionMap {
+    if (this.config.streamHubMode) {
+      const hubStatus = this.hubWs.getStatus();
+      return {
+        consequenceStream: hubStatus,
+        cmte: hubStatus,
+        doctor: "disconnected",
+        ledger: "disconnected",
+        floppydisk: "disconnected",
+        poet: this.poet.getStatus(),
+      };
+    }
     return {
       consequenceStream: this.stream.getStatus(),
       cmte: this.cmte.getStatus(),
@@ -144,6 +174,33 @@ export class UnifiedStream {
     for (const listener of this.listeners) {
       listener(event);
     }
+  }
+
+  private bindHubForwarding(): void {
+    const forward = (event: UnifiedStreamEvent) => this.emit(event);
+    this.unsubs.push(
+      this.hubWs.onMessage((event) => {
+        if (event.event_type === "cmte_analysis_frame" && this.isTheoryFrame(event.payload)) {
+          const summary = TheoryEngineClient.toCmteSummary(event.payload);
+          forward({ event_type: "cmte_analysis_frame", payload: summary });
+          return;
+        }
+        forward(event);
+      }),
+    );
+  }
+
+  private bindHubStatusForwarding(): void {
+    this.unsubs.push(this.hubWs.onStatus(() => this.notifyStatus()));
+  }
+
+  private isTheoryFrame(payload: unknown): payload is import("./theory-types.js").TheoryAnalysisFrame {
+    return (
+      typeof payload === "object" &&
+      payload !== null &&
+      "tonality_analysis" in payload &&
+      "harmonic_analysis" in payload
+    );
   }
 
   private bindPoetForwarding(): void {

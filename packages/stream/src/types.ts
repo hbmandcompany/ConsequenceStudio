@@ -136,9 +136,14 @@ export type UnifiedStreamEvent =
 
 export function parseStreamEvent(data: string): UnifiedStreamEvent | null {
   try {
-    const parsed = JSON.parse(data) as UnifiedStreamEvent;
-    if (typeof parsed.event_type !== "string" || !parsed.payload) return null;
-    return parsed;
+    const parsed = JSON.parse(data) as {
+      event_type?: string;
+      event_kind?: string;
+      payload?: unknown;
+    };
+    const eventType = parsed.event_type ?? parsed.event_kind;
+    if (typeof eventType !== "string" || !parsed.payload) return null;
+    return { event_type: eventType, payload: parsed.payload } as UnifiedStreamEvent;
   } catch {
     return null;
   }
