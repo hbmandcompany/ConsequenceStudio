@@ -147,12 +147,15 @@ build:windows:
 
 mirror:github:
   stage: mirror
-  image: alpine/git:latest
+  image:
+    name: alpine/git:latest
+    entrypoint: [""]
   variables:
     GIT_DEPTH: "0"
   script:
     - export GITHUB_TOKEN="${GITHUB_TOKEN:-$Github}"
     - sh deploy/release/mirror-git.sh
+  allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
