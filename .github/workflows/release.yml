@@ -33,7 +33,7 @@ jobs:
       - name: Build Tauri (Linux)
         run: |
           pnpm install --frozen-lockfile
-          pnpm --filter @consequence/studio-desktop build:deps
+          pnpm exec turbo run build --filter=@consequence/studio-desktop...
           pnpm --filter @consequence/studio-desktop tauri build
       - name: Collect bundle
         run: node deploy/release/collect-bundle.mjs linux
@@ -59,7 +59,7 @@ jobs:
         run: |
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
           pnpm install --frozen-lockfile
-          pnpm --filter @consequence/studio-desktop build:deps
+          pnpm exec turbo run build --filter=@consequence/studio-desktop...
           pnpm --filter @consequence/studio-desktop tauri build --target universal-apple-darwin
       - name: Collect bundle
         run: node deploy/release/collect-bundle.mjs macos
@@ -84,7 +84,7 @@ jobs:
       - name: Build Tauri (Windows)
         run: |
           pnpm install --frozen-lockfile
-          pnpm --filter @consequence/studio-desktop build:deps
+          pnpm exec turbo run build --filter=@consequence/studio-desktop...
           pnpm --filter @consequence/studio-desktop tauri build
         shell: pwsh
       - name: Collect bundle
