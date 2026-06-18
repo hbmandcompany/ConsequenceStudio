@@ -17,7 +17,7 @@ All traffic goes through the **ConsequenceStream gateway** on DigitalOcean (`git
 
 | Secret / variable | GitHub Actions (ConsequenceStudio) | GitLab CI (studio) |
 |-------------------|-----------------------------------|-------------------|
-| `VITE_STUDIO_CONDUCTOR_AUTH_TOKEN` | Repository secret | CI variable (masked) |
+| `VITE_STUDIO_CONDUCTOR_AUTH_TOKEN` | Repository secret (required) | CI variable (masked) |
 | `VITE_THEORY_ENGINE_AUTH_TOKEN` | Repository secret | CI variable (masked) |
 | `GH_RELEASE_TOKEN` | Repository secret | `GITHUB_TOKEN` |
 

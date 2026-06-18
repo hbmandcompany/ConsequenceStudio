@@ -1,6 +1,6 @@
 [package]
 name = "consequence-studio"
-version = "0.1.5"
+version = "0.1.6"
 description = "ConsequenceStudio native desktop shell"
 authors = ["HBM & Company"]
 edition = "2021"
