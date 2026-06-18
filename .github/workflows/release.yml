@@ -12,6 +12,11 @@ permissions:
 env:
   PNPM_VERSION: "9.15.0"
   GITHUB_REPO: hbmandcompany/Consequence
+  VITE_STREAM_GATEWAY_URL: http://165.227.252.58:8001
+  VITE_STREAM_HUB_MODE: "true"
+  VITE_STUDIO_ENABLE_STREAM: "true"
+  VITE_STUDIO_CONDUCTOR_AUTH_TOKEN: ${{ secrets.VITE_STUDIO_CONDUCTOR_AUTH_TOKEN }}
+  VITE_THEORY_ENGINE_AUTH_TOKEN: ${{ secrets.VITE_THEORY_ENGINE_AUTH_TOKEN }}
 
 jobs:
   build-linux:
@@ -30,6 +35,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libasound2-dev
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88
       - name: Build Tauri (Linux)
         run: |
           pnpm install --frozen-lockfile
@@ -55,6 +62,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88
       - name: Build Tauri (macOS universal)
         run: |
           rustup target add aarch64-apple-darwin x86_64-apple-darwin
@@ -81,6 +90,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88
       - name: Build Tauri (Windows)
         run: |
           pnpm install --frozen-lockfile

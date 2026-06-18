@@ -1,4 +1,4 @@
-import type { ConnectionStatus } from "./types.js";
+import type { CmteAnalysisPayload, ConnectionStatus } from "./types.js";
 import { enrichAnalysisFrame } from "./monte-carlo-projection.js";
 import type {
   TheoryAnalysisFrame,
@@ -195,6 +195,15 @@ export class TheoryEngineClient {
       tension: frame.harmonic_analysis.harmonic_tension,
       confidence: key.confidence,
       tonal_ambiguity: frame.tonality_analysis.tonal_ambiguity,
+    };
+  }
+
+  /** Same as toCmteSummary but with chord coerced for CmteAnalysisPayload consumers. */
+  static toCmtePayload(frame: TheoryAnalysisFrame): CmteAnalysisPayload {
+    const summary = TheoryEngineClient.toCmteSummary(frame);
+    return {
+      ...summary,
+      chord: summary.chord ?? "—",
     };
   }
 

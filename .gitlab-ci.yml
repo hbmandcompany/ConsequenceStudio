@@ -50,7 +50,7 @@ lint:typescript:
 
 lint:rust:
   stage: lint
-  image: rust:1.85-bookworm
+  image: rust:1.88-bookworm
   variables:
     CARGO_HOME: "/usr/local/cargo"
     RUSTUP_HOME: "/usr/local/rustup"
@@ -72,7 +72,7 @@ test:typescript:
 
 test:rust:
   stage: test
-  image: rust:1.85-bookworm
+  image: rust:1.88-bookworm
   variables:
     CARGO_HOME: "/usr/local/cargo"
     RUSTUP_HOME: "/usr/local/rustup"

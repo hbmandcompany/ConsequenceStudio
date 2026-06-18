@@ -181,8 +181,10 @@ export class UnifiedStream {
     this.unsubs.push(
       this.hubWs.onMessage((event) => {
         if (event.event_type === "cmte_analysis_frame" && this.isTheoryFrame(event.payload)) {
-          const summary = TheoryEngineClient.toCmteSummary(event.payload);
-          forward({ event_type: "cmte_analysis_frame", payload: summary });
+          forward({
+            event_type: "cmte_analysis_frame",
+            payload: TheoryEngineClient.toCmtePayload(event.payload),
+          });
           return;
         }
         forward(event);
