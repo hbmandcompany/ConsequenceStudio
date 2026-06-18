@@ -48,8 +48,11 @@ pnpm --filter @consequence/studio-desktop tauri signer generate -w ~/.tauri/cons
 
 Add GitLab CI/CD variable **`TAURI_SIGNING_PRIVATE_KEY`** (masked, protected):
 
-- Value = full contents of `~/.tauri/consequence-studio.key` (the **private** key)
-- Public key is committed in `tauri.conf.json` and `deploy/release/tauri-updater.key.pub`
+- Value = full single-line contents of the `--ci` private key file (from `tauri signer generate -w ~/.tauri/consequence-studio.key --ci`)
+- Do **not** paste the public key or a multiline key with broken newlines
+- If the key is password-protected, also set **`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`**
+
+Public key is committed in `tauri.conf.json` and `deploy/release/tauri-updater.key.pub`.
 
 Also add **`TAURI_SIGNING_PRIVATE_KEY`** to GitHub `ConsequenceStudio` secrets if using GitHub Actions builds.
 
