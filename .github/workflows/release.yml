@@ -1,0 +1,112 @@
+name: Release ConsequenceStudio
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PNPM_VERSION: "9.15.0"
+  GITHUB_REPO: hbmandcompany/Consequence
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Tauri (Linux)
+        run: pnpm install --frozen-lockfile && pnpm --filter @consequence/studio-desktop tauri build
+      - name: Collect bundle
+        run: node deploy/release/collect-bundle.mjs linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-linux
+          path: release-artifacts/linux
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Tauri (macOS universal)
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          pnpm install --frozen-lockfile
+          pnpm --filter @consequence/studio-desktop tauri build --target universal-apple-darwin
+      - name: Collect bundle
+        run: node deploy/release/collect-bundle.mjs macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-macos
+          path: release-artifacts/macos
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build Tauri (Windows)
+        run: pnpm install --frozen-lockfile; pnpm --filter @consequence/studio-desktop tauri build
+        shell: pwsh
+      - name: Collect bundle
+        run: node deploy/release/collect-bundle.mjs windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts-windows
+          path: release-artifacts/windows
+
+  release:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Assemble release-artifacts
+        run: |
+          mkdir -p release-artifacts/linux release-artifacts/macos release-artifacts/windows
+          if [ -d artifacts/release-artifacts-linux ]; then cp -R artifacts/release-artifacts-linux/. release-artifacts/linux/; fi
+          if [ -d artifacts/release-artifacts-macos ]; then cp -R artifacts/release-artifacts-macos/. release-artifacts/macos/; fi
+          if [ -d artifacts/release-artifacts-windows ]; then cp -R artifacts/release-artifacts-windows/. release-artifacts/windows/; fi
+          find release-artifacts -type f | head -50
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Publish GitHub Release on hbmandcompany/Consequence
+        env:
+          CI_COMMIT_TAG: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          RELEASE_ARTIFACTS_DIR: ${{ github.workspace }}/release-artifacts
+        run: node deploy/release/mirror-release.mjs

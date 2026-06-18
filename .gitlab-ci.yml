@@ -14,8 +14,8 @@ variables:
   # GitHub mirror repo for public installer URLs (override in CI/CD settings if needed).
   # GitHub Releases target (installers + downloads.json). Same repo as the website — do NOT git-push studio code here.
   GITHUB_REPO: "hbmandcompany/Consequence"
-  # Optional: set in CI/CD variables to mirror studio *source code* to a separate GitHub repo (e.g. hbmandcompany/ConsequenceStudio).
-  # GITHUB_CODE_MIRROR_REPO: ""
+  # Optional: mirror studio *source* to GitHub for Actions (releases still go to GITHUB_REPO).
+  GITHUB_CODE_MIRROR_REPO: "hbmandcompany/ConsequenceStudio"
 
 .default_before_script: &default_before_script
   - corepack enable
@@ -101,7 +101,7 @@ build:linux:
   stage: build
   image: node:22-bookworm
   tags:
-    - linux
+    - saas-linux-medium-amd64
   before_script:
     - apt-get update && apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
     - *default_before_script
@@ -118,8 +118,9 @@ build:linux:
 build:macos:
   stage: build
   tags:
-    - macos
-  before_script: *default_before_script
+    - saas-macos-medium-m1
+  before_script:
+    - sh deploy/ci/gitlab-macos-before.sh
   script:
     - pnpm --filter @consequence/studio-desktop tauri build --target universal-apple-darwin
     - node deploy/release/collect-bundle.mjs macos
@@ -133,8 +134,9 @@ build:macos:
 build:windows:
   stage: build
   tags:
-    - windows
-  before_script: *default_before_script
+    - saas-windows-medium-amd64
+  before_script:
+    - pwsh -File deploy/ci/gitlab-windows-before.ps1
   script:
     - pnpm --filter @consequence/studio-desktop tauri build
     - node deploy/release/collect-bundle.mjs windows
