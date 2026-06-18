@@ -26,9 +26,21 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "RWQ835GXmLYAzdAnoOkhvWs8Q8iPN0AEzKaccpPMlcU86kD8VrAMhG+O",
+      "endpoints": [
+        "https://github.com/hbmandcompany/Consequence/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -116,6 +116,8 @@ build:linux:
     - pnpm exec turbo run build --filter=@consequence/studio-desktop...
     - pnpm --filter @consequence/studio-desktop tauri build
     - node deploy/release/collect-bundle.mjs linux
+  variables:
+    TAURI_SIGNING_PRIVATE_KEY: $TAURI_SIGNING_PRIVATE_KEY
   artifacts:
     paths:
       - release-artifacts/
@@ -126,6 +128,8 @@ build:macos:
   stage: build
   tags:
     - saas-macos-medium-m1
+  variables:
+    TAURI_SIGNING_PRIVATE_KEY: $TAURI_SIGNING_PRIVATE_KEY
   before_script:
     - sh deploy/ci/gitlab-macos-before.sh
   script:
@@ -143,6 +147,8 @@ build:windows:
   stage: build
   tags:
     - saas-windows-medium-amd64
+  variables:
+    TAURI_SIGNING_PRIVATE_KEY: $TAURI_SIGNING_PRIVATE_KEY
   before_script:
     - pwsh -File deploy/ci/gitlab-windows-before.ps1
   script:

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "@consequence/state";
+import { AppUpdateBanner } from "./components/AppUpdateBanner";
 import { ProtectedWorkspaceRoute } from "./routes/ProtectedWorkspaceRoute";
 import { WelcomeRoute } from "./routes/WelcomeRoute";
 
@@ -11,9 +12,12 @@ function RootRedirect() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<RootRedirect />} />
-      <Route path="/workspace" element={<ProtectedWorkspaceRoute />} />
-    </Routes>
+    <>
+      <AppUpdateBanner />
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/workspace" element={<ProtectedWorkspaceRoute />} />
+      </Routes>
+    </>
   );
 }

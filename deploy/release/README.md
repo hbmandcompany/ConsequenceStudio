@@ -18,7 +18,7 @@ Optional: set `GITHUB_CODE_MIRROR_REPO` (e.g. `hbmandcompany/ConsequenceStudio`)
 | Job | When | What |
 |-----|------|------|
 | `mirror:github` | main / tag | Only if `GITHUB_CODE_MIRROR_REPO` is set — pushes studio source to a **separate** repo |
-| `release:mirror` | tag `v*.*.*` | Uploads installers + `downloads.json` to **GitHub Releases** on `GITHUB_REPO` |
+| `release:mirror` | tag `v*.*.*` | Uploads installers, `downloads.json`, and `latest.json` (Tauri updater) to **GitHub Releases** |
 
 ## One-time setup
 
@@ -38,7 +38,28 @@ node deploy/release/setup-gitlab-variables.mjs
 
 Sets `GITHUB_TOKEN` + `GITHUB_REPO` (`hbmandcompany/Consequence`) on `gitlab.com/consequencesoftware/studio`.
 
-### 3. Ship a release
+### 3. Tauri auto-updater signing key
+
+In-app updates verify signed builds. Generate once (if needed):
+
+```bash
+pnpm --filter @consequence/studio-desktop tauri signer generate -w ~/.tauri/consequence-studio.key --ci
+```
+
+Add GitLab CI/CD variable **`TAURI_SIGNING_PRIVATE_KEY`** (masked, protected):
+
+- Value = full contents of `~/.tauri/consequence-studio.key` (the **private** key)
+- Public key is committed in `tauri.conf.json` and `deploy/release/tauri-updater.key.pub`
+
+Also add **`TAURI_SIGNING_PRIVATE_KEY`** to GitHub `ConsequenceStudio` secrets if using GitHub Actions builds.
+
+On each tag release, CI uploads **`latest.json`** to GitHub Releases. Installed apps check:
+
+```
+https://github.com/hbmandcompany/Consequence/releases/latest/download/latest.json
+```
+
+### 4. Ship a release
 
 ```bash
 git tag v0.1.0

@@ -20,6 +20,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildLatestJson, writeLatestJson } from "./build-latest-json.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../..");
@@ -30,6 +31,7 @@ const INSTALLER_EXTENSIONS = new Set([
   ".dmg",
   ".deb",
   ".appimage",
+  ".sig",
 ]);
 
 const PLATFORM_PICK_ORDER = {
@@ -62,8 +64,17 @@ function walkFiles(dir, out = []) {
 }
 
 function isInstaller(filePath) {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith(".sig")) return true;
+  if (lower.endsWith(".app.tar.gz")) return true;
   const ext = path.extname(filePath).toLowerCase();
-  return INSTALLER_EXTENSIONS.has(ext);
+  return [".exe", ".msi", ".dmg", ".deb", ".appimage"].includes(ext);
+}
+
+function isUserFacingInstaller(filePath) {
+  if (filePath.toLowerCase().endsWith(".sig")) return false;
+  if (filePath.toLowerCase().endsWith(".app.tar.gz")) return false;
+  return isInstaller(filePath);
 }
 
 function detectPlatform(filePath) {
@@ -290,6 +301,7 @@ async function main() {
   );
   const version = resolveVersion(tag);
   const allFiles = walkFiles(artifactsDir).filter(isInstaller);
+  const userInstallers = allFiles.filter(isUserFacingInstaller);
 
   if (!allFiles.length) {
     fail(`no installer artifacts found under ${artifactsDir}`);
@@ -297,7 +309,7 @@ async function main() {
 
   log(`[release] tag=${tag} version=${version} installers=${allFiles.length}`);
 
-  const primary = pickPrimaryInstallers(allFiles);
+  const primary = pickPrimaryInstallers(userInstallers);
   const ghRelease = await ensureGitHubRelease(githubToken, githubRepo, tag, version);
 
   let ghReleaseState = await refreshGitHubRelease(githubToken, githubRepo, ghRelease);
@@ -364,6 +376,23 @@ async function main() {
 
   fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   log(`[release] downloads.json → ${manifest.manifestUrl}`);
+
+  const latestManifest = buildLatestJson(artifactsDir, version, uploaded);
+  if (Object.keys(latestManifest.platforms).length > 0) {
+    const latestPath = writeLatestJson(artifactsDir, latestManifest);
+    const latestAsset = await uploadGitHubAsset(
+      githubToken,
+      githubRepo,
+      ghReleaseState,
+      latestPath,
+    );
+    ghReleaseState = await refreshGitHubRelease(githubToken, githubRepo, ghReleaseState);
+    log(`[release] latest.json (Tauri updater) → ${latestAsset.browser_download_url}`);
+    manifest.updaterUrl = latestAsset.browser_download_url;
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  } else {
+    log("[release] skipping latest.json — no signed updater artifacts (.sig) found");
+  }
 
   const gitlabToken = process.env.GITLAB_TOKEN?.trim() || process.env.CI_JOB_TOKEN;
   const projectId = process.env.CI_PROJECT_ID;
