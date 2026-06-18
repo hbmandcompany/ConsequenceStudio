@@ -127,6 +127,11 @@ jobs:
       - name: Publish GitHub Release on hbmandcompany/Consequence
         env:
           CI_COMMIT_TAG: ${{ github.ref_name }}
-          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN }}
           RELEASE_ARTIFACTS_DIR: ${{ github.workspace }}/release-artifacts
-        run: node deploy/release/mirror-release.mjs
+        run: |
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "::error::GH_RELEASE_TOKEN secret is missing on hbmandcompany/ConsequenceStudio"
+            exit 1
+          fi
+          node deploy/release/mirror-release.mjs
