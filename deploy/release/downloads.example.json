@@ -8,13 +8,13 @@
   "website": "https://consequence.software",
   "source": {
     "gitlab": "https://gitlab.com/consequencesoftware/studio",
-    "github": "https://github.com/consequencesoftware/studio"
+    "github": "https://github.com/hbmandcompany/Consequence"
   },
-  "manifestUrl": "https://github.com/consequencesoftware/studio/releases/download/v0.1.0/downloads.json",
+  "manifestUrl": "https://github.com/hbmandcompany/Consequence/releases/download/v0.1.0/downloads.json",
   "downloads": {
-    "windows": "https://github.com/consequencesoftware/studio/releases/download/v0.1.0/ConsequenceStudio_0.1.0_x64-setup.exe",
-    "macos": "https://github.com/consequencesoftware/studio/releases/download/v0.1.0/ConsequenceStudio_0.1.0_universal.dmg",
-    "linux": "https://github.com/consequencesoftware/studio/releases/download/v0.1.0/consequence-studio_0.1.0_amd64.AppImage"
+    "windows": "https://github.com/hbmandcompany/Consequence/releases/download/v0.1.0/ConsequenceStudio_0.1.0_x64-setup.exe",
+    "macos": "https://github.com/hbmandcompany/Consequence/releases/download/v0.1.0/ConsequenceStudio_0.1.0_universal.dmg",
+    "linux": "https://github.com/hbmandcompany/Consequence/releases/download/v0.1.0/consequence-studio_0.1.0_amd64.AppImage"
   },
   "filenames": {
     "windows": "ConsequenceStudio_0.1.0_x64-setup.exe",

@@ -15,7 +15,7 @@ const PROJECT = "consequencesoftware/studio";
 
 const gitlabToken = process.env.GITLAB_TOKEN?.trim();
 const githubToken = process.env.GITHUB_TOKEN?.trim();
-const githubRepo = process.env.GITHUB_REPO?.trim() || "consequencesoftware/studio";
+const githubRepo = process.env.GITHUB_REPO?.trim() || "hbmandcompany/Consequence";
 
 if (!gitlabToken) {
   console.error("GITLAB_TOKEN is required (Hatedbymany PAT with api scope).");

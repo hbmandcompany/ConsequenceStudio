@@ -8,7 +8,7 @@
  *
  * Required CI variables:
  *   GITHUB_TOKEN   — PAT or fine-grained token with contents:write on the mirror repo
- *   GITHUB_REPO    — e.g. consequencesoftware/studio
+ *   GITHUB_REPO    — e.g. hbmandcompany/Consequence
  *
  * Optional:
  *   GITLAB_TOKEN   — defaults to CI_JOB_TOKEN
@@ -267,7 +267,7 @@ async function main() {
   const githubToken = process.env.GITHUB_TOKEN?.trim();
   const githubRepo = process.env.GITHUB_REPO?.trim();
   if (!githubToken) fail("GITHUB_TOKEN is required to mirror releases to GitHub");
-  if (!githubRepo) fail("GITHUB_REPO is required (e.g. consequencesoftware/studio)");
+  if (!githubRepo) fail("GITHUB_REPO is required (e.g. hbmandcompany/Consequence)");
 
   const artifactsDir = path.resolve(
     process.env.RELEASE_ARTIFACTS_DIR ?? path.join(REPO_ROOT, "release-artifacts"),

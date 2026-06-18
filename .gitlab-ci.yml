@@ -12,7 +12,7 @@ variables:
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
   RUSTUP_HOME: "${CI_PROJECT_DIR}/.rustup"
   # GitHub mirror repo for public installer URLs (override in CI/CD settings if needed).
-  GITHUB_REPO: "consequencesoftware/studio"
+  GITHUB_REPO: "hbmandcompany/Consequence"
 
 .default_before_script: &default_before_script
   - corepack enable
