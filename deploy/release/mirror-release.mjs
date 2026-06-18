@@ -7,7 +7,8 @@
  * GitLab is the source of truth (tag here). GitHub hosts stable download URLs.
  *
  * Required CI variables:
- *   GITHUB_TOKEN   — PAT or fine-grained token with contents:write on the mirror repo
+ *   GH_RELEASE_TOKEN — GitHub Actions (GITHUB_TOKEN is reserved by Actions)
+ *   GITHUB_TOKEN / Github — GitLab CI
  *   GITHUB_REPO    — e.g. hbmandcompany/Consequence
  *
  * Optional:
@@ -272,9 +273,16 @@ async function main() {
   if (!tag) fail("CI_COMMIT_TAG is required (push a tag like v0.1.0)");
 
   const githubToken =
-    process.env.GITHUB_TOKEN?.trim() || process.env.Github?.trim();
+    process.env.GH_RELEASE_TOKEN?.trim() ||
+    process.env.GITHUB_TOKEN?.trim() ||
+    process.env.Github?.trim();
+  if (!githubToken) {
+    fail(
+      "GH_RELEASE_TOKEN (or GITHUB_TOKEN / Github) is required to mirror releases to GitHub",
+    );
+  }
+
   const githubRepo = normalizeGithubRepo(process.env.GITHUB_REPO ?? "");
-  if (!githubToken) fail("GITHUB_TOKEN is required to mirror releases to GitHub");
   if (!githubRepo) fail("GITHUB_REPO is required (e.g. hbmandcompany/Consequence)");
 
   const artifactsDir = path.resolve(

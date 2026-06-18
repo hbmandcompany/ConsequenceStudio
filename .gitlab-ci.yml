@@ -178,7 +178,7 @@ release:mirror:
       artifacts: true
       optional: true
   script:
-    - export GITHUB_TOKEN="${GITHUB_TOKEN:-$Github}"
+    - export GH_RELEASE_TOKEN="${GH_RELEASE_TOKEN:-$Github}"
     - node deploy/release/mirror-release.mjs
   artifacts:
     paths:

@@ -10,8 +10,10 @@ pub enum BridgeError {
     #[error("stream error: {0}")]
     Stream(String),
     #[error("audio error: {0}")]
+    #[allow(dead_code)]
     Audio(String),
     #[error("internal error: {0}")]
+    #[allow(dead_code)]
     Internal(String),
 }
 
