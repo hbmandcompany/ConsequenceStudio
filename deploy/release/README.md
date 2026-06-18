@@ -52,7 +52,7 @@ Add GitLab CI/CD variable **`TAURI_SIGNING_PRIVATE_KEY`** (masked, protected):
 - Do **not** paste the public key or a multiline key with broken newlines
 - If the key is password-protected, also set **`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`**
 
-Public key is committed in `tauri.conf.json` and `deploy/release/tauri-updater.key.pub`.
+Public key is committed in `tauri.conf.json` and `deploy/release/tauri-updater.key.pub` (use the **base64-encoded** `.pub` file contents, not the inner `RWQ…` line).
 
 Also add **`TAURI_SIGNING_PRIVATE_KEY`** to GitHub `ConsequenceStudio` secrets if using GitHub Actions builds.
 
