@@ -3,17 +3,32 @@ stages:
   - test
   - benchmark
   - e2e
+  - mirror
   - build
+  - release
 
 variables:
   PNPM_VERSION: "9.15.0"
   CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
   RUSTUP_HOME: "${CI_PROJECT_DIR}/.rustup"
+  # GitHub mirror repo for public installer URLs (override in CI/CD settings if needed).
+  GITHUB_REPO: "consequencesoftware/studio"
 
 .default_before_script: &default_before_script
   - corepack enable
   - corepack prepare pnpm@${PNPM_VERSION} --activate
   - pnpm install --frozen-lockfile
+
+.main_or_mr: &main_or_mr
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_COMMIT_BRANCH == "main"
+
+.main_or_tag: &main_or_tag
+  - if: $CI_COMMIT_BRANCH == "main"
+  - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+
+.tag_only: &tag_only
+  - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
 
 lint:typescript:
   stage: lint
@@ -22,11 +37,11 @@ lint:typescript:
   script:
     - pnpm lint
     - pnpm typecheck
+  rules: *main_or_mr
 
 lint:rust:
   stage: lint
-  image: rust:1.83-bookworm
-  # Global CARGO_HOME/RUSTUP_HOME point at empty project dirs; use image toolchain.
+  image: rust:1.85-bookworm
   variables:
     CARGO_HOME: "/usr/local/cargo"
     RUSTUP_HOME: "/usr/local/rustup"
@@ -36,9 +51,7 @@ lint:rust:
   script:
     - cd apps/studio-desktop/src-tauri
     - cargo clippy -- -D warnings
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
+  rules: *main_or_mr
 
 test:typescript:
   stage: test
@@ -46,10 +59,11 @@ test:typescript:
   before_script: *default_before_script
   script:
     - pnpm test
+  rules: *main_or_mr
 
 test:rust:
   stage: test
-  image: rust:1.83-bookworm
+  image: rust:1.85-bookworm
   variables:
     CARGO_HOME: "/usr/local/cargo"
     RUSTUP_HOME: "/usr/local/rustup"
@@ -58,9 +72,7 @@ test:rust:
   script:
     - cd apps/studio-desktop/src-tauri
     - cargo test
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
+  rules: *main_or_mr
 
 benchmark:
   stage: benchmark
@@ -72,6 +84,7 @@ benchmark:
     paths:
       - .bench-cache/
     expire_in: 30 days
+  rules: *main_or_mr
 
 e2e:
   stage: e2e
@@ -79,9 +92,7 @@ e2e:
   before_script: *default_before_script
   script:
     - pnpm e2e
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
+  rules: *main_or_mr
 
 build:linux:
   stage: build
@@ -94,12 +105,12 @@ build:linux:
     - rustup target add x86_64-unknown-linux-gnu
   script:
     - pnpm --filter @consequence/studio-desktop tauri build
+    - node deploy/release/collect-bundle.mjs linux
   artifacts:
     paths:
-      - apps/studio-desktop/src-tauri/target/release/bundle/
-    expire_in: 7 days
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+      - release-artifacts/
+    expire_in: 30 days
+  rules: *main_or_tag
 
 build:macos:
   stage: build
@@ -108,13 +119,13 @@ build:macos:
   before_script: *default_before_script
   script:
     - pnpm --filter @consequence/studio-desktop tauri build --target universal-apple-darwin
+    - node deploy/release/collect-bundle.mjs macos
   artifacts:
     paths:
-      - apps/studio-desktop/src-tauri/target/release/bundle/
-    expire_in: 7 days
+      - release-artifacts/
+    expire_in: 30 days
   allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+  rules: *main_or_tag
 
 build:windows:
   stage: build
@@ -123,10 +134,41 @@ build:windows:
   before_script: *default_before_script
   script:
     - pnpm --filter @consequence/studio-desktop tauri build
+    - node deploy/release/collect-bundle.mjs windows
   artifacts:
     paths:
-      - apps/studio-desktop/src-tauri/target/release/bundle/
-    expire_in: 7 days
+      - release-artifacts/
+    expire_in: 30 days
   allow_failure: true
+  rules: *main_or_tag
+
+mirror:github:
+  stage: mirror
+  image: alpine/git:latest
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - sh deploy/release/mirror-git.sh
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+
+release:mirror:
+  stage: release
+  image: node:22-bookworm
+  needs:
+    - job: build:linux
+      artifacts: true
+    - job: build:macos
+      artifacts: true
+      optional: true
+    - job: build:windows
+      artifacts: true
+      optional: true
+  script:
+    - node deploy/release/mirror-release.mjs
+  artifacts:
+    paths:
+      - release-artifacts/downloads.json
+    expire_in: 1 year
+  rules: *tag_only
